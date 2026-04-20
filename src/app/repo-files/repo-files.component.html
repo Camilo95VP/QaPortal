@@ -1,0 +1,44 @@
+<div class="repo-files-root">
+
+  <aside class="list">
+    <h2 class="list-title">Diseños de prueba</h2>
+    <div class="actions">
+      <button class="btn-refresh" (click)="validateIndex()">Actualizar</button>
+      <span class="status-msg" *ngIf="statusMessage">{{ statusMessage }}</span>
+    </div>
+    <ng-container *ngIf="folders.length > 0; else noFiles">
+      <div *ngFor="let folder of folders" class="folder">
+        <div class="folder-name">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M10 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-8l-2-2z" fill="#1976d2"/></svg>
+          {{ folder.name }}
+        </div>
+        <ul>
+          <li *ngFor="let file of folder.files">
+            <button
+              (click)="openFile(folder, file)"
+              [class.active]="selectedFolder?.name === folder.name && selectedFile === file">
+              {{ file }}
+            </button>
+          </li>
+        </ul>
+      </div>
+    </ng-container>
+    <ng-template #noFiles>
+      <p class="empty-msg">No hay HU/EN detectadas.<br>Ejecuta <code>npm start</code> para sincronizar.</p>
+    </ng-template>
+  </aside>
+
+  <section class="viewer">
+    <div class="viewer-header">
+      <span *ngIf="selectedFile">{{ selectedFolder?.name }} / {{ selectedFile }}</span>
+      <span *ngIf="!selectedFile" class="placeholder">Selecciona un archivo para ver su contenido</span>
+    </div>
+    <div *ngIf="loading" class="loading">Cargando...</div>
+    <pre *ngIf="!loading && selectedContent">{{ selectedContent }}</pre>
+    <div *ngIf="!loading && !selectedContent && !selectedFile" class="empty-viewer">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" fill="#e3eaf4"/><path d="M14 2v6h6" fill="none" stroke="#1976d2" stroke-width="1.5"/><line x1="8" y1="13" x2="16" y2="13" stroke="#aab" stroke-width="1.5"/><line x1="8" y1="17" x2="13" y2="17" stroke="#aab" stroke-width="1.5"/></svg>
+      <p>Selecciona un archivo de la lista</p>
+    </div>
+  </section>
+
+</div>

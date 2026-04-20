@@ -1,0 +1,85 @@
+:host {
+	display: block;
+}
+
+.toolbar {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 72px;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	background: linear-gradient(90deg,#1565c0 0%, #1976d2 100%);
+	color: white;
+	padding: 8px 20px;
+	box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+	z-index: 1000;
+}
+
+.toolbar-left { display:flex; align-items:center; gap:12px; }
+.logo svg { width:44px; height:44px; border-radius:6px; }
+.logo-img { width:54px; height:54px; object-fit:contain; border-radius:6px; display:block; }
+.brand { display:flex; flex-direction:column; }
+.brand-title { font-weight:700; font-size:25px; line-height:1; font-family: monospace; }
+.brand-subtitle { font-size:12px; opacity:0.9; margin-top:2px; }
+
+.toolbar-nav { display:flex; gap:12px; align-items:center; }
+.nav-btn {
+	display:inline-flex;
+	align-items:center;
+	justify-content:center;
+	padding:12px 24px;
+	border-radius:999px;
+	font-weight:800;
+	font-size:18px;
+	letter-spacing:0.2px;
+	font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", "Courier New", monospace;
+	text-decoration:none;
+	cursor:pointer;
+	min-width:140px;
+	box-sizing:border-box;
+	transition:transform .16s ease, box-shadow .16s ease, opacity .12s ease;
+	border: none;
+    color: white;
+}
+
+.nav-icon { display:inline-flex; width:22px; height:22px; margin-right:10px; align-items:center; justify-content:center; }
+.nav-icon svg { width:100%; height:100%; display:block; }
+.nav-label { display:inline-block; }
+
+
+/* Unificar apariencia de botones: mismos colores y comportamiento */
+.nav-btn.primary,
+.nav-btn.outline {
+	background: linear-gradient(180deg,#ffffff 0%, #f4f8ff 100%);
+	color: #0b4a86;
+	box-shadow: 0 10px 24px rgba(13,71,161,0.12);
+	border: 1px solid rgba(255,255,255,0.9);
+}
+
+.nav-btn:hover {
+	transform: translateY(-4px) scale(1.02);
+	box-shadow: 0 18px 40px rgba(13,71,161,0.16);
+	opacity: 0.98;
+}
+
+.nav-btn:active { transform: translateY(-1px); }
+.nav-btn:focus { outline: 3px solid rgba(255,255,255,0.18); outline-offset: 3px; }
+
+.content { margin: 100px auto 32px; padding: 0 16px; max-width: 980px; }
+
+@media (max-width: 840px) {
+	.brand-title { font-size:14px; }
+	.toolbar { padding: 10px 12px; }
+	.toolbar-nav { gap:8px; }
+	.nav-btn { padding:10px 16px; font-size:16px; min-width:110px; }
+}
+
+@media (max-width: 480px) {
+	.toolbar { height: 64px; }
+	.brand-subtitle { display:none; }
+	.nav-btn { padding:8px 12px; font-size:14px; min-width:90px; }
+}
+

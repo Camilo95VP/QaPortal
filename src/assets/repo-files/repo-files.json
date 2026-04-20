@@ -1,0 +1,30 @@
+[
+  {
+    "name": "HU30628_Crear_Usuarios_Comercio",
+    "path": "HU30628_Crear_Usuarios_Comercio",
+    "files": [
+      "casos_automatizables.md",
+      "casos_manuales.md",
+      "automation_v1.spec.ts"
+    ]
+  },
+  {
+    "name": "HU30630_Editar_Usuarios_Comercio",
+    "path": "HU30630_Editar_Usuarios_Comercio",
+    "files": [
+      "casos_automatizables.md",
+      "casos_manuales.md",
+      "automation_v1.spec.ts"
+    ]
+  }
+  ,
+  {
+    "name": "HU30629_Eliminar_Usuarios_Comercio",
+    "path": "HU30629_Eliminar_Usuarios_Comercio",
+    "files": [
+      "casos_automatizables.md",
+      "casos_manuales.md",
+      "automation_v1.spec.ts"
+    ]
+  }
+]

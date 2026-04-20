@@ -1,0 +1,281 @@
+// ─── Variables ───────────────────────────────────────────────────────────────
+$primary: #4f46e5;
+$primary-dark: #4338ca;
+$primary-light: #ede9fe;
+$danger: #dc2626;
+$danger-bg: #fef2f2;
+$success: #16a34a;
+$success-bg: #f0fdf4;
+$text: #1e293b;
+$text-muted: #64748b;
+$border: #e2e8f0;
+$bg: #f8fafc;
+$white: #ffffff;
+$radius: 10px;
+$radius-sm: 6px;
+
+// ─── Wrapper ─────────────────────────────────────────────────────────────────
+.td-wrapper {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 32px 24px 64px;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  color: $text;
+}
+
+// ─── Header ──────────────────────────────────────────────────────────────────
+.td-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 36px;
+
+  &__icon {
+    font-size: 2.4rem;
+    line-height: 1;
+  }
+
+  &__title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin: 0 0 4px;
+    background: linear-gradient(135deg, $primary, #7c3aed);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  &__subtitle {
+    margin: 0;
+    color: $text-muted;
+    font-size: 0.9rem;
+
+    code {
+      background: $primary-light;
+      color: $primary;
+      padding: 1px 6px;
+      border-radius: $radius-sm;
+      font-size: 0.85rem;
+    }
+  }
+}
+
+// ─── Form section ────────────────────────────────────────────────────────────
+.td-form-section {
+  background: $white;
+  border: 1px solid $border;
+  border-radius: $radius;
+  padding: 32px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+}
+
+.td-form-row {
+  margin-bottom: 0;
+
+  &--two-cols {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+
+    @media (max-width: 600px) {
+      grid-template-columns: 1fr;
+    }
+  }
+}
+
+// ─── Field ───────────────────────────────────────────────────────────────────
+.td-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 22px;
+}
+
+.td-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: $text;
+}
+
+.td-required {
+  color: $danger;
+  margin-left: 2px;
+}
+
+.td-optional {
+  color: $text-muted;
+  font-weight: 400;
+  font-size: 0.8rem;
+  margin-left: 4px;
+}
+
+// ─── Inputs ──────────────────────────────────────────────────────────────────
+.td-input,
+.td-textarea {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1.5px solid $border;
+  border-radius: $radius-sm;
+  font-size: 0.9rem;
+  color: $text;
+  background: $bg;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
+  font-family: inherit;
+
+  &::placeholder {
+    color: #94a3b8;
+  }
+
+  &:focus {
+    outline: none;
+    border-color: $primary;
+    box-shadow: 0 0 0 3px rgba($primary, 0.15);
+    background: $white;
+  }
+
+  &--error {
+    border-color: $danger !important;
+    background: $danger-bg;
+  }
+}
+
+.td-textarea {
+  resize: vertical;
+  min-height: 80px;
+  line-height: 1.5;
+}
+
+.td-error-msg {
+  font-size: 0.78rem;
+  color: $danger;
+  font-weight: 500;
+}
+
+// ─── Actions ─────────────────────────────────────────────────────────────────
+.td-actions {
+  margin-top: 8px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+// ─── Buttons ─────────────────────────────────────────────────────────────────
+.td-btn {
+  cursor: pointer;
+  border: none;
+  border-radius: $radius-sm;
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 10px 22px;
+  transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+
+  &:active {
+    transform: scale(0.97);
+  }
+
+  &--primary {
+    background: $primary;
+    color: $white;
+    box-shadow: 0 2px 6px rgba($primary, 0.4);
+
+    &:hover {
+      background: $primary-dark;
+      box-shadow: 0 4px 12px rgba($primary, 0.4);
+    }
+  }
+
+  &--copy {
+    background: #f1f5f9;
+    color: $text;
+    border: 1.5px solid $border;
+
+    &:hover {
+      background: $primary-light;
+      border-color: $primary;
+      color: $primary;
+    }
+  }
+
+  &--copied {
+    background: $success-bg !important;
+    border-color: $success !important;
+    color: $success !important;
+  }
+}
+
+// ─── Result section (dark terminal theme) ────────────────────────────────────
+$code-bg:        #0d1117;
+$code-bg-header: #161b22;
+$code-border:    #30363d;
+$code-text:      #e6edf3;
+$code-muted:     #8b949e;
+
+.td-result-section {
+  margin-top: 32px;
+  background: $code-bg;
+  border: 1px solid $code-border;
+  border-radius: $radius;
+  overflow: hidden;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+}
+
+.td-result-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  border-bottom: 1px solid $code-border;
+  background: $code-bg-header;
+
+  .td-btn--copy {
+    background: #21262d;
+    color: $code-muted;
+    border: 1px solid $code-border;
+    font-size: 0.8rem;
+    padding: 6px 14px;
+
+    &:hover {
+      background: #30363d;
+      color: $code-text;
+      border-color: #6e7681;
+    }
+  }
+
+  .td-btn--copied {
+    background: #0d2e1a !important;
+    border-color: #3fb950 !important;
+    color: #3fb950 !important;
+  }
+}
+
+.td-result-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin: 0;
+  color: $code-muted;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  &::before {
+    content: '●';
+    color: #3fb950;
+    font-size: 0.6rem;
+  }
+}
+
+.td-output {
+  margin: 0;
+  padding: 24px 28px 32px;
+  font-family: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 0.82rem;
+  line-height: 1.85;
+  color: $code-text;
+  background: $code-bg;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-x: auto;
+  border: none;
+}

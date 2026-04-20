@@ -1,0 +1,117 @@
+<div class="td-wrapper">
+  <header class="td-header">
+    <div>
+      <h1 class="td-header__title">Agente diseñador de casos de pruebas</h1>
+      <p class="td-header__subtitle">Proporciona la siguiente información para el agente personalizado <code>@qa-test-designer-expert</code></p>
+    </div>
+  </header>
+
+  <section class="td-form-section">
+    <form [formGroup]="form" (ngSubmit)="generatePrompt()" novalidate>
+
+      <div class="td-form-row td-form-row--two-cols">
+        <!-- Habilitador -->
+        <div class="td-field">
+          <label class="td-label" for="habilitador">
+            Habilitador <span class="td-optional">(opcional)</span>
+          </label>
+          <input
+            id="habilitador"
+            class="td-input"
+            [class.td-input--error]="isInvalid('habilitador')"
+            formControlName="habilitador"
+            placeholder="Ej: EN29655"
+            autocomplete="off"
+          />
+        </div>
+
+        <!-- Nombre HU -->
+        <div class="td-field">
+          <label class="td-label" for="nombreHU">
+            Nombre de la HU <span class="td-optional">(opcional)</span>
+          </label>
+          <input
+            id="nombreHU"
+            class="td-input"
+            [class.td-input--error]="isInvalid('nombreHU')"
+            formControlName="nombreHU"
+            placeholder="Ej: HU30628 - Crear Usuarios Comercio"
+            autocomplete="off"
+          />
+        </div>
+      </div>
+
+      <div *ngIf="isEitherInvalid()" class="td-error-msg">Se requiere al menos Habilitador o Nombre de la HU</div>
+
+      <!-- Descripción -->
+      <div class="td-field">
+        <label class="td-label" for="descripcion">
+          Descripción <span class="td-required">*</span>
+        </label>
+        <textarea
+          id="descripcion"
+          class="td-textarea"
+          [class.td-input--error]="isInvalid('descripcion')"
+          formControlName="descripcion"
+          rows="4"
+          placeholder="Describe el objetivo de la HU..."
+        ></textarea>
+        <span class="td-error-msg" *ngIf="isInvalid('descripcion')">Campo requerido</span>
+      </div>
+
+      <!-- Criterios de aceptación -->
+      <div class="td-field">
+        <label class="td-label" for="criterios">
+          Criterios de aceptación <span class="td-required">*</span>
+        </label>
+        <textarea
+          id="criterios"
+          class="td-textarea"
+          [class.td-input--error]="isInvalid('criterios')"
+          formControlName="criterios"
+          rows="6"
+          placeholder="CA-01: El sistema debe...&#10;CA-02: El usuario puede...&#10;CA-03: Se valida que..."
+        ></textarea>
+        <span class="td-error-msg" *ngIf="isInvalid('criterios')">Campo requerido</span>
+      </div>
+
+      <!-- Contexto adicional -->
+      <div class="td-field">
+        <label class="td-label" for="contexto">
+          Contexto adicional <span class="td-optional">(opcional)</span>
+        </label>
+        <textarea
+          id="contexto"
+          class="td-textarea"
+          formControlName="contexto"
+          rows="3"
+          placeholder="Reglas de negocio especiales, integraciones, validaciones particulares..."
+        ></textarea>
+      </div>
+
+      <div class="td-actions">
+        <button type="submit" class="td-btn td-btn--primary">
+          ⚡ Generar Prompt
+        </button>
+      </div>
+
+    </form>
+  </section>
+
+  <!-- Resultado -->
+  <section class="td-result-section" *ngIf="generatedPrompt" #promptOutput>
+    <div class="td-result-header">
+      <h2 class="td-result-title">Prompt generado</h2>
+      <button
+        type="button"
+        class="td-btn td-btn--copy"
+        [class.td-btn--copied]="copied"
+        (click)="copyToClipboard()"
+      >
+        <span *ngIf="!copied">📋 Copiar al portapapeles</span>
+        <span *ngIf="copied">✅ Copiado</span>
+      </button>
+    </div>
+    <pre class="td-output">{{ generatedPrompt }}</pre>
+  </section>
+</div>

@@ -1,0 +1,119 @@
+.repo-files-root {
+  display: flex;
+  gap: 0;
+  height: calc(100vh - 116px);
+  border: 1px solid #e3e9f0;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fff;
+}
+
+/* ─── Sidebar ─── */
+.list {
+  width: 300px;
+  min-width: 220px;
+  border-right: 1px solid #e3e9f0;
+  overflow-y: auto;
+  background: #f7faff;
+  padding: 16px 0 16px;
+}
+
+.list-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1565c0;
+  padding: 0 16px 12px;
+  border-bottom: 1px solid #e3e9f0;
+  margin: 0 0 8px;
+}
+
+.folder { margin-bottom: 4px; }
+
+.folder-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #1565c0;
+  background: #eaf1fb;
+  border-left: 3px solid #1976d2;
+  user-select: none;
+}
+
+.folder ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.folder li { margin: 0; }
+
+.folder button {
+  all: unset;
+  display: block;
+  width: 100%;
+  padding: 7px 16px 7px 28px;
+  font-size: 12.5px;
+  cursor: pointer;
+  color: #374151;
+  box-sizing: border-box;
+  border-left: 3px solid transparent;
+  transition: background 0.12s, color 0.12s;
+}
+
+.folder button:hover { background: #deeafc; color: #0b4a86; }
+.folder button.active { background: #c7dcfc; color: #0b3a70; font-weight: 600; border-left-color: #1976d2; }
+
+.empty-msg { padding: 16px; font-size: 13px; color: #888; line-height: 1.6; }
+.empty-msg code { background: #eee; padding: 2px 5px; border-radius: 4px; font-size: 12px; }
+
+/* ─── Viewer ─── */
+.viewer {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.viewer-header {
+  padding: 10px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1565c0;
+  border-bottom: 1px solid #e3e9f0;
+  background: #f7faff;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+}
+
+.placeholder { color: #aab; font-weight: 400; }
+
+.loading { padding: 24px; color: #1976d2; }
+
+pre {
+  flex: 1;
+  overflow: auto;
+  margin: 0;
+  padding: 20px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: #1e293b;
+  background: #fff;
+}
+
+.empty-viewer {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #b0bec5;
+  gap: 12px;
+  font-size: 14px;
+}
