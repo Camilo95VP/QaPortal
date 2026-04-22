@@ -1,4 +1,4 @@
-# HU30628 - Crear Usuarios del Comercio — Casos Manuales
+# HU3062 - Crear Usuarios del Comercio — Casos Manuales
 
 Estos casos cubren aspectos que requieren verificación humana, dispositivos reales o juicios subjetivos.
 

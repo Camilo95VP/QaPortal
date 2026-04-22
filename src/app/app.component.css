@@ -20,7 +20,7 @@
 
 .toolbar-left { display:flex; align-items:center; gap:12px; }
 .logo svg { width:44px; height:44px; border-radius:6px; }
-.logo-img { width:54px; height:54px; object-fit:contain; border-radius:6px; display:block; }
+.logo-img { width:54px; height:54px; object-fit:contain; border-radius:100px; display:block; }
 .brand { display:flex; flex-direction:column; }
 .brand-title { font-weight:700; font-size:25px; line-height:1; font-family: monospace; }
 .brand-subtitle { font-size:12px; opacity:0.9; margin-top:2px; }
@@ -68,7 +68,7 @@
 .nav-btn:active { transform: translateY(-1px); }
 .nav-btn:focus { outline: 3px solid rgba(255,255,255,0.18); outline-offset: 3px; }
 
-.content { margin: 100px auto 32px; padding: 0 16px; max-width: 980px; }
+.content { margin: 100px auto 32px; padding: 0 16px; }
 
 @media (max-width: 840px) {
 	.brand-title { font-size:14px; }

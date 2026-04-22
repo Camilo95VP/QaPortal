@@ -8,12 +8,15 @@
     </div>
     <ng-container *ngIf="folders.length > 0; else noFiles">
       <div *ngFor="let folder of folders" class="folder">
-        <div class="folder-name">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M10 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-8l-2-2z" fill="#1976d2"/></svg>
-          {{ folder.name }}
+        <div class="folder-name" role="button" tabindex="0" (click)="toggleFolder(folder)" (keydown.enter)="toggleFolder(folder)">
+          <span class="folder-icon" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M10 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-8l-2-2z" fill="currentColor"/></svg>
+          </span>
+          <span class="folder-label">{{ folder.name }}</span>
+          <span style="margin-left:auto;font-size:12px;color:#0b4a86;">{{ isOpen(folder) ? '▾' : '▸' }}</span>
         </div>
-        <ul>
-          <li *ngFor="let file of folder.files">
+        <ul *ngIf="isOpen(folder)">
+          <li *ngFor="let file of folder.files" class="file-row">
             <button
               (click)="openFile(folder, file)"
               [class.active]="selectedFolder?.name === folder.name && selectedFile === file">
@@ -30,15 +33,52 @@
 
   <section class="viewer">
     <div class="viewer-header">
-      <span *ngIf="selectedFile">{{ selectedFolder?.name }} / {{ selectedFile }}</span>
-      <span *ngIf="!selectedFile" class="placeholder">Selecciona un archivo para ver su contenido</span>
+      <div class="viewer-title">
+        <span *ngIf="selectedFile">{{ selectedFolder?.name }} / {{ selectedFile }}</span>
+        <span *ngIf="!selectedFile" class="placeholder">Selecciona un archivo para ver su contenido</span>
+      </div>
+      <div class="viewer-actions">
+        <button type="button" *ngIf="selectedFile && !editing" class="btn-edit" (click)="startEdit()">&#9998; Editar</button>
+        <button type="button" *ngIf="selectedFile && !editing" class="btn-pdf" (click)="generatePdf(selectedFolder, selectedFile)">Generar PDF</button>
+        <button type="button" *ngIf="selectedFile && !editing" class="btn-word" (click)="generateWord(selectedFolder, selectedFile)">Exportar Word</button>
+        <button type="button" *ngIf="selectedFile && !editing && selectedFile === 'casos_manuales.md'" class="btn-template" (click)="showPlantillaModal = true">📋 Generar plantilla</button>
+        <button type="button" *ngIf="editing" class="btn-save" (click)="$event.preventDefault(); saveFile()">&#10003; Guardar</button>
+        <button type="button" *ngIf="editing" class="btn-cancel" (click)="$event.preventDefault(); cancelEdit()">&#x2715; Cancelar</button>
+      </div>
     </div>
     <div *ngIf="loading" class="loading">Cargando...</div>
-    <pre *ngIf="!loading && selectedContent">{{ selectedContent }}</pre>
+    <textarea *ngIf="!loading && editing" class="editor" [(ngModel)]="editContent" spellcheck="false"></textarea>
+    <pre *ngIf="!loading && !editing && selectedContent">{{ selectedContent }}</pre>
     <div *ngIf="!loading && !selectedContent && !selectedFile" class="empty-viewer">
       <svg width="48" height="48" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" fill="#e3eaf4"/><path d="M14 2v6h6" fill="none" stroke="#1976d2" stroke-width="1.5"/><line x1="8" y1="13" x2="16" y2="13" stroke="#aab" stroke-width="1.5"/><line x1="8" y1="17" x2="13" y2="17" stroke="#aab" stroke-width="1.5"/></svg>
       <p>Selecciona un archivo de la lista</p>
     </div>
   </section>
 
+</div>
+
+<!-- Plantilla modal: Ejecutado por -->
+<div *ngIf="showPlantillaModal" class="modal-overlay">
+  <div class="modal-box">
+    <h3>Generar plantilla de ejecución</h3>
+    <p>Ingresa el nombre de quien ejecutará las pruebas:</p>
+    <input class="modal-input" type="text" [(ngModel)]="plantillaEjecutadoPor" placeholder="Nombre del ejecutor" (keydown.enter)="generateTemplate()" />
+    <div class="modal-actions">
+      <button class="btn-save" (click)="generateTemplate()" [disabled]="!plantillaEjecutadoPor.trim()">Generar</button>
+      <button class="btn-cancel" (click)="showPlantillaModal = false; plantillaEjecutadoPor = ''">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Unsaved changes modal -->
+<div *ngIf="showUnsavedModal" class="modal-overlay">
+  <div class="modal-box">
+    <h3>Hay cambios sin guardar</h3>
+    <p>Tienes cambios no guardados en el editor. ¿Qué deseas hacer?</p>
+    <div class="modal-actions">
+      <button class="btn-discard" (click)="proceedDiscard()">Salir sin guardar</button>
+      <button class="btn-save" (click)="proceedSaveAndOpen()">Guardar y salir</button>
+      <button class="btn-cancel" (click)="cancelPendingNavigation()">Cancelar</button>
+    </div>
+  </div>
 </div>
