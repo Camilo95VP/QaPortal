@@ -35,6 +35,9 @@ export class RepoFilesComponent implements OnInit {
   plantillaEjecutadoPor = '';
   pendingOpenFolder: HuFolder | null = null;
   pendingOpenFile = '';
+  // Delete modal state
+  showDeleteModal = false;
+  deleteTarget: HuFolder | null = null;
 
   constructor(private http: HttpClient) {}
 
@@ -175,6 +178,41 @@ export class RepoFilesComponent implements OnInit {
     this.pendingOpenFolder = null;
     this.pendingOpenFile = '';
   }
+  /** Abre modal de confirmación para eliminar carpeta */
+  confirmDeleteFolder(folder: HuFolder): void {
+    this.deleteTarget = folder;
+    this.showDeleteModal = true;
+  }
+
+  cancelDelete(): void {
+    this.deleteTarget = null;
+    this.showDeleteModal = false;
+  }
+
+  proceedDelete(): void {
+    if (!this.deleteTarget) return this.cancelDelete();
+    const folder = this.deleteTarget;
+    this.showDeleteModal = false;
+    this.deleteTarget = null;
+    this.statusMessage = `Eliminando ${folder.name}...`;
+    const apiPath = `/api/repo-files/folder?folder=${encodeURIComponent(folder.path)}`;
+    this.http.delete(apiPath).subscribe({
+      next: () => {
+        this.folders = this.folders.filter(f => f.path !== folder.path);
+        if (this.selectedFolder && this.selectedFolder.path === folder.path) {
+          this.selectedFolder = null;
+          this.selectedFile = '';
+          this.selectedContent = '';
+        }
+        this.statusMessage = `Carpeta ${folder.name} eliminada.`;
+        setTimeout(() => { this.statusMessage = ''; }, 2500);
+      },
+      error: (err) => {
+        console.error('delete folder error', err);
+        this.statusMessage = 'Error eliminando la carpeta.';
+      }
+    });
+  }
 
   isOpen(folder: HuFolder): boolean {
     return this.openFolders.has(folder.path);
@@ -305,7 +343,12 @@ export class RepoFilesComponent implements OnInit {
           this.fetchImageDataUrl('/assets/encabezado.png').then(headerDataUrl => {
             const html = this.simpleMarkdownToHtml(md || '');
             const headerHtml = headerDataUrl ? `<div style="text-align:center;margin-bottom:12px"><img src="${headerDataUrl}" style="width:100%;max-width:760px;height:auto;display:block;margin:0 auto;"/></div>` : '';
-            const style = `body{ font-family: Arial, Helvetica, sans-serif; padding: 20px; color: #111; -webkit-print-color-adjust: exact; print-color-adjust: exact; } pre{ background:#f6f8fa; padding:10px; overflow:auto } code{ font-family: monospace } .steps{margin:0;padding:0} .steps .step{margin:0;padding:0;line-height:1.15} h2{margin:16px 0} h3{margin:10px 0 6px 0} .section-flag{color:#2e8b57;margin:16px 0;font-weight:700; -webkit-print-color-adjust: exact; print-color-adjust: exact;} .section-flag svg{display:inline-block;vertical-align:middle} /* CP title style */ .cp-title{ font-family: Arial, Helvetica, sans-serif; font-size:17pt; font-weight:700; font-style:normal; margin:0; } table{border-collapse:collapse;width:100%;margin:12px 0;page-break-inside:avoid} th,td{border:1px solid #ccc;padding:6px 10px;text-align:left;vertical-align:top} th{background:#f0f0f0;font-weight:600} tr:nth-child(even) td{background:#fafafa} @media print{table{border-collapse:collapse !important} th,td{border:1px solid #999 !important} th{background:#e8e8e8 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact} .cp-title{ font-size:17pt !important; font-style:normal !important }}`;
+            const style = `body{ font-family: Arial, Helvetica, sans-serif; padding: 20px; color: #111; -webkit-print-color-adjust: exact; print-color-adjust: exact; } pre{ background:#f6f8fa; padding:10px; overflow:auto } code{ font-family: monospace } .steps{margin:0;padding:0} .steps .step{margin:0;padding:0;line-height:1.15} h2{margin:16px 0} h3{margin:10px 0 6px 0} .section-flag{color:#2e8b57;margin:16px 0;font-weight:700; -webkit-print-color-adjust: exact; print-color-adjust: exact;} .section-flag svg{display:inline-block;vertical-align:middle} /* CP title style */ .cp-title{ font-family: Arial, Helvetica, sans-serif; font-size:17pt; font-weight:700; font-style:normal; margin:0; } table{border-collapse:collapse;width:100%;margin:12px 0;page-break-inside:avoid} th,td{border:1px solid #ccc;padding:6px 10px;text-align:left;vertical-align:Top} th{background:#f0f0f0;font-weight:600} tr:nth-child(even) td{background:#fafafa}
+            /* Page break rules to avoid cutting content between pages */
+            .cp-title { page-break-before: always; -webkit-page-break-before: always; break-before: page; }
+            .cp-title:first-of-type { page-break-before: auto; -webkit-page-break-before: auto; }
+            table, tr, th, td, pre, .steps, .steps .step, .section-flag { page-break-inside: avoid; -webkit-page-break-inside: avoid; break-inside: avoid; }
+            @media print{table{border-collapse:collapse !important} th,td{border:1px solid #999 !important} th{background:#e8e8e8 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact} .cp-title{ font-size:17pt !important; font-style:normal !important } .cp-title { page-break-before: always; -webkit-page-break-before: always; break-before: page; } .cp-title:first-of-type { page-break-before: auto; -webkit-page-break-before: auto; } table, tr, th, td, pre, .steps, .steps .step, .section-flag { page-break-inside: avoid; -webkit-page-break-inside: avoid; break-inside: avoid; }}`;
             const full = `<!doctype html><html><head><meta charset="utf-8"><title>${filename}</title><style>${style}</style></head><body>${headerHtml}${html}</body></html>`;
 
             // Crear iframe oculto en la misma página para evitar popups
@@ -320,38 +363,133 @@ export class RepoFilesComponent implements OnInit {
             document.body.appendChild(iframe);
 
             try {
-              const doc = (iframe.contentDocument) ? iframe.contentDocument : (iframe.contentWindow && iframe.contentWindow.document);
-              if (doc) {
-                doc.open();
-                doc.write(full);
-                doc.close();
-                // Esperar a que el iframe renderice
-                setTimeout(() => {
-                  try {
-                    (iframe.contentWindow as Window).focus();
-                    (iframe.contentWindow as Window).print();
-                  } catch (e) {
-                    console.error('print iframe failed', e);
-                  }
-                  setTimeout(() => { try { document.body.removeChild(iframe); } catch (e) {} }, 500);
-                }, 600);
-                this.statusMessage = 'Impresión iniciada.';
-                return;
-              }
-            } catch (e) {
-              console.warn('iframe write failed', e);
-            }
+              // Intentar generar y descargar PDF directamente usando html2pdf.js (bundled: html2canvas + jsPDF)
+              const container = document.createElement('div');
+              // Make container renderable but invisible to the user so html2canvas can capture it
+              container.style.position = 'fixed';
+              // keep on-screen but invisible so html2canvas can compute layout
+              container.style.left = '0';
+              container.style.top = '0';
+              container.style.width = '760px';
+              container.style.background = '#fff';
+              container.style.opacity = '0';
+              container.style.pointerEvents = 'none';
+              container.style.zIndex = '99999';
+              // create an inner wrapper to ensure proper block layout and measurable height
+              const wrapper = document.createElement('div');
+              wrapper.style.display = 'block';
+              wrapper.style.width = '760px';
+              wrapper.style.background = '#fff';
+              // include the same inline styles used for the printable HTML so formatting is preserved
+              wrapper.innerHTML = `<style>${style}</style>` + headerHtml + html;
+              container.appendChild(wrapper);
+              document.body.appendChild(container);
 
-            // Fallback: abrir en nueva pestaña si iframe falla
-            const blob = new Blob([full], { type: 'text/html' });
-            const url = URL.createObjectURL(blob);
-            const win = window.open(url, '_blank', 'noopener');
-            if (!win) {
-              this.statusMessage = 'Popup bloqueado: permite ventanas emergentes para continuar.';
+              const loadHtml2Pdf = (): Promise<void> => {
+                return new Promise((resolve, reject) => {
+                  if ((window as any).html2pdf) return resolve();
+                  const s = document.createElement('script');
+                  s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js';
+                  s.onload = () => resolve();
+                  s.onerror = () => reject(new Error('No se pudo cargar html2pdf desde CDN'));
+                  document.head.appendChild(s);
+                });
+              };
+
+              // Wait for images inside container to load before calling html2pdf
+              const waitForImages = () => {
+                const imgs = Array.from(container.querySelectorAll('img')) as HTMLImageElement[];
+                if (imgs.length === 0) return Promise.resolve();
+                const promises = imgs.map(img => new Promise<void>(res => {
+                  if (img.complete) return res();
+                  img.onload = () => res();
+                  img.onerror = () => res();
+                }));
+                return Promise.all(promises).then(() => {});
+              };
+              // wait images, then ensure wrapper has height > 0 before rendering
+              waitForImages().then(() => {
+                const ensureHeight = () => new Promise<void>((resolve) => {
+                  let tries = 0;
+                  const check = () => {
+                    const rect = wrapper.getBoundingClientRect();
+                    if (rect.height > 2 || tries > 20) return resolve();
+                    tries++;
+                    setTimeout(check, 100);
+                  };
+                  check();
+                });
+                return ensureHeight().then(() => loadHtml2Pdf());
+              }).then(() => {
+                try {
+                  const opt = {
+                    margin:       10,
+                    filename:     filename.replace(/\.[^.]+$/, '') + '.pdf',
+                    image:        { type: 'jpeg', quality: 0.98 },
+                    html2canvas:  { scale: 2, useCORS: true, logging: true },
+                    jsPDF:        { unit: 'pt', format: 'a4', orientation: 'portrait' },
+                    pagebreak:    { mode: ['css', 'legacy'], avoid: ['.cp-title', 'table', 'pre', '.steps', '.section-flag'] }
+                  };
+                  // @ts-ignore - html2pdf injected from CDN
+                  // generate from the inner wrapper to ensure correct dimensions
+                  (window as any).html2pdf().set(opt).from(wrapper).save().then(() => {
+                    try { document.body.removeChild(container); } catch (e) {}
+                    this.statusMessage = 'PDF descargado.';
+                  }).catch((err: any) => {
+                    console.warn('html2pdf failed', err);
+                    try { document.body.removeChild(container); } catch (e) {}
+                    this.statusMessage = 'Error generando PDF con html2pdf. Intentando impresión...';
+                    // fallback a impresión tradicional
+                    try {
+                      const doc = (iframe.contentDocument) ? iframe.contentDocument : (iframe.contentWindow && iframe.contentWindow.document);
+                      if (doc) {
+                        doc.open(); doc.write(full); doc.close();
+                        setTimeout(() => { try { (iframe.contentWindow as Window).focus(); (iframe.contentWindow as Window).print(); } catch (e) {} }, 600);
+                      }
+                    } catch (e) { console.error('fallback print failed', e); }
+                  });
+                } catch (e) {
+                  console.error('html2pdf processing error', e);
+                }
+              }).catch((err) => {
+                console.warn('failed to load html2pdf', err);
+                // If loading html2pdf fails, fallback to previous iframe print behavior
+                try {
+                  const doc = (iframe.contentDocument) ? iframe.contentDocument : (iframe.contentWindow && iframe.contentWindow.document);
+                  if (doc) {
+                    doc.open();
+                    doc.write(full);
+                    doc.close();
+                    setTimeout(() => {
+                      try {
+                        (iframe.contentWindow as Window).focus();
+                        (iframe.contentWindow as Window).print();
+                      } catch (e) {
+                        console.error('print iframe failed', e);
+                      }
+                      setTimeout(() => { try { document.body.removeChild(iframe); } catch (e) {} }, 500);
+                    }, 600);
+                    this.statusMessage = 'Impresión iniciada.';
+                    return;
+                  }
+                } catch (e) {
+                  console.warn('iframe write failed', e);
+                }
+                const blob = new Blob([full], { type: 'text/html' });
+                const url = URL.createObjectURL(blob);
+                const win = window.open(url, '_blank', 'noopener');
+                if (!win) {
+                  this.statusMessage = 'Popup bloqueado: permite ventanas emergentes para continuar.';
+                  return;
+                }
+                setTimeout(() => { try { win.print(); } catch (e) {} }, 700);
+                this.statusMessage = 'Ventana de impresión abierta.';
+              });
               return;
+            } catch (e) {
+              console.error('print error', e);
+              this.statusMessage = 'Error preparando impresión.';
             }
-            setTimeout(() => { try { win.print(); } catch (e) {} }, 700);
-            this.statusMessage = 'Ventana de impresión abierta.';
           }).catch(() => {
             this.statusMessage = 'Error cargando imagen de encabezado.';
           });

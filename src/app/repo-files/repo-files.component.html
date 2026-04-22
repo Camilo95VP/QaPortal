@@ -9,6 +9,7 @@
     <ng-container *ngIf="folders.length > 0; else noFiles">
       <div *ngFor="let folder of folders" class="folder">
         <div class="folder-name" role="button" tabindex="0" (click)="toggleFolder(folder)" (keydown.enter)="toggleFolder(folder)">
+          <button class="btn-delete-folder" title="Eliminar carpeta" (click)="$event.stopPropagation(); confirmDeleteFolder(folder)">✖</button>
           <span class="folder-icon" aria-hidden="true">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M10 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-8l-2-2z" fill="currentColor"/></svg>
           </span>
@@ -39,7 +40,8 @@
       </div>
       <div class="viewer-actions">
         <button type="button" *ngIf="selectedFile && !editing" class="btn-edit" (click)="startEdit()">&#9998; Editar</button>
-        <button type="button" *ngIf="selectedFile && !editing" class="btn-pdf" (click)="generatePdf(selectedFolder, selectedFile)">Generar PDF</button>
+        <!-- Botón Generar PDF comentado por petición del equipo -->
+        <!-- <button type="button" *ngIf="selectedFile && !editing" class="btn-pdf" (click)="generatePdf(selectedFolder, selectedFile)">Generar PDF</button> -->
         <button type="button" *ngIf="selectedFile && !editing" class="btn-word" (click)="generateWord(selectedFolder, selectedFile)">Exportar Word</button>
         <button type="button" *ngIf="selectedFile && !editing && selectedFile === 'casos_manuales.md'" class="btn-template" (click)="showPlantillaModal = true">📋 Generar plantilla</button>
         <button type="button" *ngIf="editing" class="btn-save" (click)="$event.preventDefault(); saveFile()">&#10003; Guardar</button>
@@ -79,6 +81,18 @@
       <button class="btn-discard" (click)="proceedDiscard()">Salir sin guardar</button>
       <button class="btn-save" (click)="proceedSaveAndOpen()">Guardar y salir</button>
       <button class="btn-cancel" (click)="cancelPendingNavigation()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete confirmation modal -->
+<div *ngIf="showDeleteModal" class="modal-overlay">
+  <div class="modal-box">
+    <h3>Confirmar eliminación</h3>
+    <p>¿Estás seguro de eliminar la carpeta <strong>{{ deleteTarget?.name }}</strong> de <code>src/assets/repo-files</code>? Esta acción no se puede deshacer.</p>
+    <div class="modal-actions">
+      <button class="btn-discard" (click)="proceedDelete()">Eliminar</button>
+      <button class="btn-cancel" (click)="cancelDelete()">Cancelar</button>
     </div>
   </div>
 </div>

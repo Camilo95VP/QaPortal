@@ -22,17 +22,18 @@ export function parseCasosManuales(md: string): { hu: string; casos: CasoManual[
   const hu = huMatch ? huMatch[1] : '';
 
   const casos: CasoManual[] = [];
-  // Split by CP sections (### CP-MXX: ...)
-  const cpBlocks = md.split(/(?=^###\s+CP-M\d+)/m).filter(b => /^###\s+CP-M\d+/.test(b));
+  // Split by CP sections (accept both '### CP-MXX:' and 'CP-MXX:' at line start)
+  const cpBlocks = md.split(/(?=^(?:\s*###\s*)?CP-M\d+)/m).filter(b => /^(?:\s*###\s*)?CP-M\d+/.test(b));
 
   for (const block of cpBlocks) {
-    const headerMatch = block.match(/^###\s+(CP-M\d+)[:\-]?\s*(.*)/m);
+    const headerMatch = block.match(/^(?:\s*###\s*)?(CP-M\d+)[:\-]?\s*(.*)/m);
     if (!headerMatch) continue;
     const id = headerMatch[1];
     const titulo = headerMatch[2].trim();
 
     // Escenario
-    const escMatch = block.match(/\*\*Escenario:\*\*\s*(.*)/i);
+    // Accept either bold '**Escenario:**' or plain 'Escenario:' at line start
+    const escMatch = block.match(/(?:\*\*Escenario:\*\*|^Escenario:)\s*(.*)/im);
     const escenario = escMatch ? escMatch[1].trim() : '';
 
     // Collect Dado/Cuando/Entonces/Y lines

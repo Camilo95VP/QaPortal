@@ -79,29 +79,63 @@
 .folder-icon svg{ display:block }
 .folder-label{ display:inline-block }
 
+/* Delete folder button placed at start of folder row */
+.btn-delete-folder{
+  all: unset;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:20px;
+  height:20px;
+  margin-right:6px;
+  border-radius:4px;
+  background: transparent;
+  color: #b71c1c;
+  border: none;
+  cursor: pointer;
+  font-weight:700;
+  font-size:12px;
+  line-height:1;
+}
+.btn-delete-folder:hover{ background: rgba(183,28,28,0.06); transform: none; }
+
 .folder ul {
   list-style: none;
   padding: 0;
   margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding-left: 0;
+  margin-top: 6px;
 }
 
 .folder li { margin: 0; }
 
 .folder button {
   all: unset;
-  display: block;
-  width: 100%;
-  padding: 7px 16px 7px 28px;
-  font-size: 12.5px;
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  margin-left: 28px;
+  margin-top: 6px;
+  font-size: 13px;
   cursor: pointer;
-  color: #374151;
+  color: #0b4a86;
+  background: #ffffff;
+  border: 1px solid #e6f0ff;
+  border-radius: 8px;
   box-sizing: border-box;
-  border-left: 3px solid transparent;
-  transition: background 0.12s, color 0.12s;
+  transition: background 0.12s, color 0.12s, transform 0.06s;
 }
 
-.folder button:hover { background: #deeafc; color: #0b4a86; }
-.folder button.active { background: #c7dcfc; color: #0b3a70; font-weight: 600; border-left-color: #1976d2; }
+.folder button:hover { background: #eef6ff; color: #083f74; transform: translateY(-1px); }
+.folder button.active {
+  background: #c7dcfc;
+  color: #0b3a70;
+  font-weight: 600;
+  box-shadow: inset 0 0 0 1px rgba(21,101,192,0.06);
+}
 
 .empty-msg { padding: 16px; font-size: 13px; color: #888; line-height: 1.6; }
 .empty-msg code { background: #eee; padding: 2px 5px; border-radius: 4px; font-size: 12px; }

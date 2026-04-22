@@ -224,6 +224,49 @@ app.put('/api/repo-files/content', async (req, res) => {
   }
 });
 
+// Delete a folder under src/assets/repo-files/<folder>
+app.delete('/api/repo-files/folder', async (req, res) => {
+  const folder = req.query.folder;
+  if (!folder) return res.status(400).json({ error: 'folder query param required' });
+  try {
+    const INDEX_DIR = path.join(__dirname, 'src', 'assets', 'repo-files');
+    const target = path.resolve(path.join(INDEX_DIR, folder));
+    if (!target.startsWith(path.resolve(INDEX_DIR))) return res.status(400).json({ error: 'invalid path' });
+    if (!fsSync.existsSync(target)) return res.status(404).json({ error: 'folder not found' });
+    // remove directory recursively
+    await fs.rm(target, { recursive: true, force: true });
+
+    // regenerate repo-files.json index
+    try {
+      const ALLOWED_EXT = ['.md', '.ts', '.txt'];
+      const entries = await fs.readdir(INDEX_DIR, { withFileTypes: true });
+      const result = [];
+      for (const entry of entries) {
+        if (!entry.isDirectory()) continue;
+        if (!/^(HU|EN)/i.test(entry.name)) continue;
+        const folderPath = path.join(INDEX_DIR, entry.name);
+        let files = [];
+        try {
+          const sub = await fs.readdir(folderPath, { withFileTypes: true });
+          files = sub.filter(s => s.isFile()).map(s => s.name)
+            .filter(n => ALLOWED_EXT.includes(path.extname(n).toLowerCase()));
+        } catch (e) { files = []; }
+        if (files.length === 0) continue;
+        result.push({ name: entry.name, path: entry.name, files });
+      }
+      const indexPath = path.join(INDEX_DIR, 'repo-files.json');
+      fsSync.writeFileSync(indexPath, JSON.stringify(result, null, 2), 'utf8');
+    } catch (e) {
+      console.warn('rebuild index after delete failed', e && e.message ? e.message : e);
+    }
+
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('delete folder error', err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Repo-files server listening on port ${PORT}. Repo root: ${REPO_ROOT}`);
 });
