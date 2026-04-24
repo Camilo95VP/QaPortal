@@ -216,7 +216,7 @@ export async function generarPlantillaWord(
       spacing: { after: 300 },
       children: [
         new TextRun({
-          text: `${hu || folderName} — Plantilla de Ejecución`,
+          text: `${hu || folderName} — Ejecución de las pruebas`,
           bold: true,
           font: 'Calibri',
           size: 32,

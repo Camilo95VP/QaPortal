@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpClientModule } from '@angular/common/http';
 import { generarPlantillaWord } from './plantilla-word.service';
+import { Document as DocxDocument, Packer as DocxPacker, Paragraph as DocxParagraph, TextRun as DocxTextRun, Table as DocxTable, TableRow as DocxTableRow, TableCell as DocxTableCell, HeadingLevel as DocxHeadingLevel, ImageRun as DocxImageRun, AlignmentType as DocxAlignmentType, ShadingType as DocxShadingType } from 'docx';
 
 interface HuFolder {
   name: string;
@@ -343,7 +344,7 @@ export class RepoFilesComponent implements OnInit {
           this.fetchImageDataUrl('/assets/encabezado.png').then(headerDataUrl => {
             const html = this.simpleMarkdownToHtml(md || '');
             const headerHtml = headerDataUrl ? `<div style="text-align:center;margin-bottom:12px"><img src="${headerDataUrl}" style="width:100%;max-width:760px;height:auto;display:block;margin:0 auto;"/></div>` : '';
-            const style = `body{ font-family: Arial, Helvetica, sans-serif; padding: 20px; color: #111; -webkit-print-color-adjust: exact; print-color-adjust: exact; } pre{ background:#f6f8fa; padding:10px; overflow:auto } code{ font-family: monospace } .steps{margin:0;padding:0} .steps .step{margin:0;padding:0;line-height:1.15} h2{margin:16px 0} h3{margin:10px 0 6px 0} .section-flag{color:#2e8b57;margin:16px 0;font-weight:700; -webkit-print-color-adjust: exact; print-color-adjust: exact;} .section-flag svg{display:inline-block;vertical-align:middle} /* CP title style */ .cp-title{ font-family: Arial, Helvetica, sans-serif; font-size:17pt; font-weight:700; font-style:normal; margin:0; } table{border-collapse:collapse;width:100%;margin:12px 0;page-break-inside:avoid} th,td{border:1px solid #ccc;padding:6px 10px;text-align:left;vertical-align:Top} th{background:#f0f0f0;font-weight:600} tr:nth-child(even) td{background:#fafafa}
+            const style = `body{ font-family: Arial, Helvetica, sans-serif; padding: 20px; color: #111; -webkit-print-color-adjust: exact; print-color-adjust: exact; } pre{ background:#f6f8fa; padding:10px; overflow:auto } code{ font-family: monospace } .steps{margin:0;padding:0} .steps .step{margin:0;padding:0;line-height:1.15} h2{margin:16px 0} h3{margin:10px 0 6px 0} .section-flag{color:#2e8b57;margin:16px 0;font-weight:700; -webkit-print-color-adjust: exact; print-color-adjust: exact;} .section-flag svg{display:inline-block;vertical-align:middle} /* CP title style */ .cp-title{ font-family: Arial, Helvetica, sans-serif; font-size:17pt; font-weight:700; font-style:normal; margin:0 !important; padding:0 !important; margin-block-start:0 !important; margin-block-end:0 !important; line-height:1 !important; display:block; } table{border-collapse:collapse;width:100%;margin:12px 0;page-break-inside:avoid} th,td{border:1px solid #ccc;padding:6px 10px;text-align:left;vertical-align:Top} th{background:#f0f0f0;font-weight:600} tr:nth-child(even) td{background:#fafafa}
             /* Page break rules to avoid cutting content between pages */
             .cp-title { page-break-before: always; -webkit-page-break-before: always; break-before: page; }
             .cp-title:first-of-type { page-break-before: auto; -webkit-page-break-before: auto; }
@@ -518,75 +519,158 @@ export class RepoFilesComponent implements OnInit {
       next: (md) => {
         try {
           const rawHtml = this.simpleMarkdownToHtml(md || '');
-          // Solo en Word: quitar cursivas en todo el documento y ajustar etiquetas clave
-          let html = rawHtml.replace(/<strong>Escenario:<\/strong>/g, '<strong>Escenario</strong>:');
-          // Eliminar etiquetas de cursiva (<em>, <i>) conservando el texto
-          html = html.replace(/<\/?(?:em|i)[^>]*>/gi, '');
-          // Convertir h1 a párrafo con estilo inline (Word sobrescribiría h1 con cursiva de su tema)
-          html = html.replace(/<h1\b[^>]*>([\s\S]*?)<\/h1>/gi, (_m, inner) =>
-            `<p style="font-family:Arial,Helvetica,sans-serif;font-size:22pt;font-weight:700;font-style:normal;margin:12pt 0 6pt 0;"><b>${inner}</b></p>`);
-          // Convertir h2 regulares (no cp-title) a párrafo con estilo inline
-          html = html.replace(/<h2\b(?![^>]*cp-title)[^>]*>([\s\S]*?)<\/h2>/gi, (_m, inner) =>
-            `<p style="font-family:Arial,Helvetica,sans-serif;font-size:14pt;font-weight:700;font-style:normal;margin:10pt 0 5pt 0;"><b>${inner}</b></p>`);
-          // Convertir h3 a párrafo con estilo inline
-          html = html.replace(/<h3\b[^>]*>([\s\S]*?)<\/h3>/gi, (_m, inner) =>
-            `<p style="font-family:Arial,Helvetica,sans-serif;font-size:12pt;font-weight:700;font-style:normal;margin:8pt 0 4pt 0;"><b>${inner}</b></p>`);
-          // Convertir h4-h6 a párrafo con estilo inline
-          html = html.replace(/<h[456]\b[^>]*>([\s\S]*?)<\/h[456]>/gi, (_m, inner) =>
-            `<p style="font-family:Arial,Helvetica,sans-serif;font-size:11pt;font-weight:700;font-style:normal;margin:6pt 0 3pt 0;"><b>${inner}</b></p>`);
-          // Asegurar que el título CP no contenga etiquetas de cursiva dentro del <h2 class="cp-title">...
-          html = html.replace(/<h2 class="cp-title">([\s\S]*?)<\/h2>/g, (_m, inner) => {
-            const clean = inner.replace(/<\/?(?:em|i)[^>]*>/gi, '');
-            return `<h2 class="cp-title">${clean}</h2>`;
-          });
-          // Forzar título inicial: si ya existe <h1>, aplicar estilo; si no, insertar el nombre de archivo
-          const docTitle = filename.replace(/\.[^.]+$/, '');
-          if (/\<h1\b/i.test(html)) {
-            html = html.replace(/<h1\b([^>]*)>([\s\S]*?)<\/h1>/i, (_m, attrs, inner) => {
-              return `<h1${attrs} style="font-family: Arial, Helvetica, sans-serif; font-size:22pt; font-weight:700; margin:0 0 12px 0;">${inner}</h1>`;
-            });
-          } else {
-            const titleHtml = `<h1 style="font-family: Arial, Helvetica, sans-serif; font-size:22pt; font-weight:700; margin:0 0 12px 0;">${docTitle}</h1>`;
-            html = titleHtml + html;
+          // Build DOM from HTML
+          const container = document.createElement('div');
+          container.innerHTML = rawHtml;
+
+          const children: any[] = [];
+
+          const dataUrlToUint8 = (dataUrl: string) => {
+            const parts = dataUrl.split(',');
+            if (parts.length < 2) return new Uint8Array();
+            const b64 = parts[1];
+            const bin = atob(b64);
+            const len = bin.length;
+            const arr = new Uint8Array(len);
+            for (let i = 0; i < len; i++) arr[i] = bin.charCodeAt(i);
+            return arr;
+          };
+
+          // Walk nodes and convert to docx structures
+          function walkNode(node: ChildNode) : any[] {
+            const out: any[] = [];
+            if (node.nodeType === Node.TEXT_NODE) {
+              const t = (node.textContent || '').trim();
+              if (!t) return out;
+              out.push(new DocxParagraph({ children: [new DocxTextRun({ text: t })] }));
+              return out;
+            }
+            if (node.nodeType !== Node.ELEMENT_NODE) return out;
+            const el = node as HTMLElement;
+            const tag = el.tagName.toLowerCase();
+            if (tag === 'h1') {
+              out.push(new DocxParagraph({ heading: DocxHeadingLevel.HEADING_1, children: [new DocxTextRun({ text: el.textContent || '', bold: true, size: 44 })] }));
+              return out;
+            }
+            if (tag === 'h2') {
+              const isCp = el.classList && el.classList.contains('cp-title');
+              if (isCp) {
+                out.push(new DocxParagraph({ heading: DocxHeadingLevel.HEADING_2, spacing: { before: 0, after: 0 }, children: [new DocxTextRun({ text: el.textContent || '', bold: true, size: 34 })] }));
+              } else {
+                out.push(new DocxParagraph({ heading: DocxHeadingLevel.HEADING_2, children: [new DocxTextRun({ text: el.textContent || '', bold: true, size: 34 })] }));
+              }
+              return out;
+            }
+            if (tag === 'h3') {
+              out.push(new DocxParagraph({ heading: DocxHeadingLevel.HEADING_3, children: [new DocxTextRun({ text: el.textContent || '', bold: true, size: 28 })] }));
+              return out;
+            }
+            if (tag === 'p') {
+              const runs: any[] = [];
+              el.childNodes.forEach(ch => {
+                if (ch.nodeType === Node.TEXT_NODE) runs.push(new DocxTextRun({ text: ch.textContent || '' }));
+                else if ((ch as HTMLElement).tagName === 'STRONG') runs.push(new DocxTextRun({ text: (ch.textContent || ''), bold: true }));
+                else if ((ch as HTMLElement).tagName === 'EM' || (ch as HTMLElement).tagName === 'I') runs.push(new DocxTextRun({ text: (ch.textContent || ''), italics: true }));
+                else runs.push(new DocxTextRun({ text: (ch.textContent || '') }));
+              });
+              // If previous sibling is an h2.cp-title, remove top spacing on this paragraph
+              const prev = el.previousElementSibling as HTMLElement | null;
+              if (prev && prev.tagName.toLowerCase() === 'h2' && prev.classList.contains('cp-title')) {
+                out.push(new DocxParagraph({ spacing: { before: 0 }, children: runs }));
+              } else {
+                out.push(new DocxParagraph({ children: runs }));
+              }
+              return out;
+            }
+            if (tag === 'ul') {
+              const lis = Array.from(el.querySelectorAll('li'));
+              lis.forEach(li => out.push(new DocxParagraph({ children: [new DocxTextRun({ text: li.textContent || '' })], bullet: { level: 0 } })));
+              return out;
+            }
+            if (tag === 'pre' || tag === 'code') {
+              const text = el.textContent || '';
+              out.push(new DocxParagraph({ children: [new DocxTextRun({ text, font: 'Courier New' })] }));
+              return out;
+            }
+            if (tag === 'table') {
+              const rows = Array.from(el.querySelectorAll('tr'));
+              const tableRows = rows.map(r => {
+                const cells = Array.from(r.querySelectorAll('th,td'));
+                return new DocxTableRow({
+                  children: cells.map(c => {
+                    const isHeader = (c as HTMLElement).tagName.toLowerCase() === 'th';
+                    const cellOpts: any = {
+                      children: [new DocxParagraph({ children: [new DocxTextRun({ text: c.textContent || '', bold: isHeader })] })]
+                    };
+                    if (isHeader) {
+                      cellOpts.shading = { type: DocxShadingType.CLEAR, fill: 'E8E8E8', color: 'auto' };
+                    }
+                    return new DocxTableCell(cellOpts);
+                  })
+                });
+              });
+              out.push(new DocxTable({ rows: tableRows }));
+              return out;
+            }
+            if (tag === 'div') {
+              el.childNodes.forEach(ch => out.push(...walkNode(ch)));
+              return out;
+            }
+            // fallback
+            el.childNodes.forEach(ch => out.push(...walkNode(ch)));
+            return out;
           }
 
-          // obtener imagen de encabezado y construir documento Word con la cabecera embebida
-          this.fetchImageDataUrl('/assets/encabezado.png').then(headerDataUrl => {
-              // Build a true Word header block (mso-element:header) plus a visible fallback header
-              // so the image appears both in Word header area and as inline at document top.
-              const msoHeader = headerDataUrl ?
-                `<div style="mso-element:header;margin:0;padding:0">
-                    <table style=\"width:100%;border-collapse:collapse;\"><tr>
-                      <td style=\"width:33%;vertical-align:top;\"></td>
-                      <td style=\"width:34%;text-align:center;vertical-align:top;\">` +
-                        `<img src=\"${headerDataUrl}\" style=\"max-width:420px;width:100%;height:auto;display:block;margin:0 auto;\"/>` +
-                      `</td>
-                      <td style=\"width:33%;text-align:right;vertical-align:top;\">` +
-                        `</td>
-                    </tr></table>
-                 </div>` : '';
-              // Visible fallback header (same as PDF) to ensure image shows if Word ignores the mso header
-              const visibleHeader = headerDataUrl ? `<div style="text-align:center;margin-bottom:12px"><img src="${headerDataUrl}" style="width:100%;max-width:760px;height:auto;display:block;margin:0 auto;"/></div>` : '';
-              const style = `*{font-style:normal !important} body{ font-family: Arial, Helvetica, sans-serif; font-size: 12pt; padding: 20px; color: #111; } p,li,td,th{ font-family: Arial, Helvetica, sans-serif; font-size: 12pt; } pre{ background:#f6f8fa; padding:10px; overflow:auto } code{ font-family: monospace } .steps{margin:0;padding:0} .steps .step{margin:0;padding:0;line-height:1.15} h2{margin:16px 0} h3{margin:10px 0 6px 0} .section-flag{color:#2e8b57;margin:16px 0;font-weight:700} /* CP title style for Word */ .cp-title{ font-family: Arial, Helvetica, sans-serif; font-size:17pt; font-weight:700; font-style:normal; margin:0; } table{border-collapse:collapse;width:100%;margin:12px 0} th,td{border:1px solid #999;padding:6px 10px;text-align:left;vertical-align:top} th{background:#e8e8e8;font-weight:600} tr:nth-child(even) td{background:#fafafa}`;
-              // Forzar estilo inline en títulos CP para asegurar Arial 17pt en Word
-              // Inject the mso header and visible header, and ensure Section1 page header is used by Word
-              let htmlWithInlineCp = (visibleHeader + html).replace(/<h2 class="cp-title">([\s\S]*?)<\/h2>/g, (_m, inner) => {
-                return `<p style="margin:12pt 0 6pt 0;"><b><span style="font-family:Arial,Helvetica,sans-serif;font-size:17pt;font-style:normal;">${inner}</span></b></p>`;
-              });
-              // Ensure no italic tags remain in the final HTML for Word export
-              htmlWithInlineCp = htmlWithInlineCp.replace(/<\/?(?:em|i)[^>]*>/gi, '');
-              const wordHtml = `<!doctype html>\n<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">\n<head><meta charset="utf-8"><title>${filename}</title>\n<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom><w:DoNotOptimizeForBrowser/></w:WordDocument></xml><![endif]-->\n<style>@page { size: A4; margin:1in } div.Section1{page:Section1} ${style}</style></head>\n<body><div class=\"Section1\">${msoHeader}${htmlWithInlineCp}</div></body>\n</html>`;
-            // Prepend UTF-8 BOM to help Word correctly detect UTF-8 encoding (fixes tildes/acents)
-            const BOM = new Uint8Array([0xEF, 0xBB, 0xBF]);
-            const blob = new Blob([BOM, wordHtml], { type: 'application/msword;charset=utf-8' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename.replace(/\.[^.]+$/, '') + '.doc';
-            document.body.appendChild(a);
-            a.click();
-            setTimeout(() => { try { document.body.removeChild(a); URL.revokeObjectURL(url); } catch (e) {} }, 500);
-            this.statusMessage = 'Documento Word descargado.';
+          container.childNodes.forEach(n => children.push(...walkNode(n)));
+
+          // Try to include header image as first block if available
+          this.fetchImageDataUrl('/assets/encabezado.png').then(dataUrl => {
+            const sections: any[] = [];
+            const secChildren: any[] = [];
+            if (dataUrl) {
+              const arr = dataUrlToUint8(dataUrl);
+              try {
+                // Cast to any to satisfy TypeScript overloads of ImageRun options
+                const imgOpts: any = { data: arr, transformation: { width: 600, height: Math.round(600 * 0.25) } };
+                secChildren.push(new DocxParagraph({ children: [new DocxImageRun(imgOpts as any)], alignment: DocxAlignmentType.CENTER }));
+              } catch (e) {
+                // ignore image errors
+              }
+            }
+            // Título centrado: "Diseño de casos de prueba" + nombre de la HU
+            const huName = (folderObj.name || folderObj.path || '').trim();
+            secChildren.push(
+              new DocxParagraph({
+                alignment: DocxAlignmentType.CENTER,
+                spacing: { before: 200, after: 80 },
+                children: [new DocxTextRun({ text: 'Escenarios de prueba', bold: true, size: 34 })]
+              })
+            );
+            if (huName) {
+              secChildren.push(
+                new DocxParagraph({
+                  alignment: DocxAlignmentType.CENTER,
+                  spacing: { before: 0, after: 400 },
+                  children: [new DocxTextRun({ text: huName, size: 28, font: 'Arial' })]
+                })
+              );
+            }
+            secChildren.push(...children);
+            sections.push({ children: secChildren });
+            const doc = new DocxDocument({ sections });
+            DocxPacker.toBlob(doc).then(blob => {
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = filename.replace(/\.[^.]+$/, '') + '.docx';
+              document.body.appendChild(a);
+              a.click();
+              setTimeout(() => { try { document.body.removeChild(a); URL.revokeObjectURL(url); } catch (e) {} }, 500);
+              this.statusMessage = 'Documento Word (.docx) descargado.';
+            }).catch(err => {
+              console.error('docx export error', err);
+              this.statusMessage = 'Error generando documento Word.';
+            });
           }).catch(() => {
             this.statusMessage = 'Error cargando imagen de encabezado.';
           });
@@ -618,8 +702,9 @@ export class RepoFilesComponent implements OnInit {
     md = md.replace(/^## (.*$)/gim, '<h2>$1</h2>');
     md = md.replace(/^# (.*$)/gim, '<h1>$1</h1>');
     // CP title: make lines like 'CP-01: Title' bold and larger, add class for styling
+    // Remove extra blank lines above (2) and below (1) by emitting an h2 with zero margin
     md = md.replace(/^(CP-\d+\b[:\-]?\s*.*)$/gim, (_m, full) => {
-      return `<div style="margin:18px 0"><h2 class="cp-title">${esc(full.trim())}</h2></div>`;
+      return `<h2 class="cp-title" style="margin:0;padding:0;margin-block-start:0;margin-block-end:0;line-height:1;display:block">${esc(full.trim())}</h2>`;
     });
     // Section flags: Happy Path, Full Error, Casos Borde — show as green labels with surrounding space
     md = md.replace(/^(?:\s*)(Happy Path|Full Error|Casos Borde|Casos borde)(?:\s*\(.*\))?\s*$/gim, (_m, label) => {
@@ -687,6 +772,13 @@ export class RepoFilesComponent implements OnInit {
       if (/^<h\d\b/.test(l) || /^<ul>/.test(l) || /^<pre>/.test(l) || /^<div class=\"steps\">/.test(l) || /^<table/.test(l)) return l;
       return '<p>' + l.replace(/\n/g, '<br/>') + '</p>';
     }).join('\n');
-    return out;
+    // Remove blank paragraphs, <br/> and whitespace immediately before and after CP titles
+    let finalOut = out
+      .replace(/<p>\s*<\/p>\s*(<h2 class="cp-title"[^>]*>[\s\S]*?<\/h2>)/g, '$1')
+      .replace(/(<h2 class="cp-title"[^>]*>[\s\S]*?<\/h2>)\s*<p>\s*<\/p>/g, '$1')
+      .replace(/(?:<br\s*\/?>(?:\s|\n)*)+(<h2 class="cp-title"[^>]*>)/g, '$1')
+      .replace(/(<h2 class="cp-title"[^>]*>)\s*(?:<br\s*\/?>(?:\s|\n)*)+/g, '$1')
+      .replace(/\s*(<h2 class="cp-title"[^>]*>[\s\S]*?<\/h2>)\s*/g, '$1');
+    return finalOut;
   }
 }
