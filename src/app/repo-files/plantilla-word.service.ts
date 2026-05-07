@@ -15,11 +15,23 @@ export interface CasoManual {
   entonces: string;
 }
 
+function extractHuIdentifier(value: string): string {
+  const normalized = (value || '').trim();
+  if (!normalized) return '';
+  const explicitMatch = normalized.match(/\b(HU|EN)\s*[-_]?\s*(\d+)\b/i);
+  if (explicitMatch) return `${explicitMatch[1].toUpperCase()}${explicitMatch[2]}`;
+  const numericPrefixMatch = normalized.match(/^\s*(\d{3,})\b/);
+  if (numericPrefixMatch) return `HU${numericPrefixMatch[1]}`;
+  return '';
+}
+
 /* ───── Parser ───── */
-export function parseCasosManuales(md: string): { hu: string; casos: CasoManual[] } {
-  // Extract HU/EN from the first heading
-  const huMatch = md.match(/^#\s+(HU\d+|EN\d+)/m);
-  const hu = huMatch ? huMatch[1] : '';
+export function parseCasosManuales(md: string, folderName = ''): { hu: string; casos: CasoManual[] } {
+  // Extract HU/EN from markdown content and fall back to selected folder name.
+  const hu =
+    extractHuIdentifier(md.match(/^#\s+(.+)$/m)?.[1] || '') ||
+    extractHuIdentifier(md) ||
+    extractHuIdentifier(folderName);
 
   const casos: CasoManual[] = [];
   // Split by CP sections (accept both '### CP-MXX:' and 'CP-MXX:' at line start)
@@ -119,6 +131,51 @@ function valueCell(text: string, colSpan = 1, widthPct?: number): TableCell {
   });
 }
 
+/* ───── Gherkin cell ───── */
+function gherkinCell(keyword: 'Dado' | 'Cuando' | 'Entonces', text: string): TableCell {
+  const lines = (text || '').split('\n').map(line => line.trim()).filter(Boolean);
+  const [firstLine = '', ...otherLines] = lines;
+  const paragraphs: Paragraph[] = [];
+  if (firstLine) {
+    paragraphs.push(new Paragraph({
+      spacing: { before: 20, after: 20 },
+      children: [
+        new TextRun({ text: `${keyword}`, bold: true, font: 'Calibri', size: 20 }),
+        new TextRun({ text: ` ${firstLine}`, font: 'Calibri', size: 20 }),
+      ],
+    }));
+  } else {
+    paragraphs.push(new Paragraph({
+      spacing: { before: 20, after: 20 },
+      children: [new TextRun({ text: `${keyword}`, bold: true, font: 'Calibri', size: 20 })],
+    }));
+  }
+  for (const line of otherLines) {
+    if (/^Y\b/i.test(line)) {
+      const rest = line.replace(/^Y\s*/i, '');
+      paragraphs.push(new Paragraph({
+        spacing: { before: 10, after: 10 },
+        children: [
+          new TextRun({ text: 'Y', bold: true, font: 'Calibri', size: 20 }),
+          new TextRun({ text: ` ${rest}`, font: 'Calibri', size: 20 }),
+        ],
+      }));
+    } else {
+      paragraphs.push(new Paragraph({
+        spacing: { before: 10, after: 10 },
+        children: [new TextRun({ text: line, font: 'Calibri', size: 20 })],
+      }));
+    }
+  }
+  return new TableCell({
+    columnSpan: 6,
+    verticalAlign: VerticalAlign.CENTER,
+    borders: BORDER,
+    margins: { top: 100, bottom: 100, left: 100, right: 100 },
+    children: paragraphs,
+  });
+}
+
 /* ───── Generador de tabla por CP ───── */
 function buildCasoTable(caso: CasoManual, hu: string, ejecutadoPor: string, fecha: string): Table {
   return new Table({
@@ -161,31 +218,26 @@ function buildCasoTable(caso: CasoManual, hu: string, ejecutadoPor: string, fech
         ],
       }),
       // FILA 5: Dado
-      new TableRow({
-        children: [
-          labelCell('Dado:', 1),
-          valueCell(caso.dado, 5),
-        ],
-      }),
+      new TableRow({ children: [gherkinCell('Dado', caso.dado)] }),
       // FILA 6: Cuando
-      new TableRow({
-        children: [
-          labelCell('Cuando:', 1),
-          valueCell(caso.cuando, 5),
-        ],
-      }),
+      new TableRow({ children: [gherkinCell('Cuando', caso.cuando)] }),
       // FILA 7: Entonces
+      new TableRow({ children: [gherkinCell('Entonces', caso.entonces)] }),
+      // FILA 8: Ejecución — celda única fusionada
       new TableRow({
         children: [
-          labelCell('Entonces:', 1),
-          valueCell(caso.entonces, 5),
-        ],
-      }),
-      // FILA 8: Ejecución | vacío
-      new TableRow({
-        children: [
-          labelCell('Ejecución:', 1),
-          valueCell('', 5),
+          new TableCell({
+            columnSpan: 6,
+            verticalAlign: VerticalAlign.CENTER,
+            borders: BORDER,
+            margins: { top: 100, bottom: 100, left: 100, right: 100 },
+            children: [
+              new Paragraph({
+                spacing: { before: 40, after: 40 },
+                children: [new TextRun({ text: 'Ejecución:', bold: true, font: 'Calibri', size: 20 })],
+              }),
+            ],
+          }),
         ],
       }),
     ],
@@ -198,7 +250,7 @@ export async function generarPlantillaWord(
   ejecutadoPor: string,
   folderName: string
 ): Promise<void> {
-  const { hu, casos } = parseCasosManuales(md);
+  const { hu, casos } = parseCasosManuales(md, folderName);
   if (casos.length === 0) {
     alert('No se encontraron casos manuales con formato CP-MXX en el archivo.');
     return;
@@ -209,21 +261,81 @@ export async function generarPlantillaWord(
 
   const children: (Table | Paragraph)[] = [];
 
-  // Título del documento
-  children.push(
-    new Paragraph({
-      alignment: AlignmentType.CENTER,
-      spacing: { after: 300 },
-      children: [
-        new TextRun({
-          text: `${hu || folderName} — Ejecución de las pruebas`,
-          bold: true,
-          font: 'Calibri',
-          size: 32,
-        }),
-      ],
-    })
+  // --- Portada (primera hoja) ---
+  function formatHuForCover(rawHu: string): string {
+    if (!rawHu) return '';
+    const m = rawHu.match(/(HU|EN)\s*[-_]?\s*(\d+)/i);
+    if (m) return `${m[1].toUpperCase()} ${m[2]}`;
+    const n = rawHu.match(/(\d{3,})/);
+    if (n) return `HU ${n[1]}`;
+    return rawHu;
+  }
+
+  const coverHu = formatHuForCover(hu || folderName);
+
+  // Split cover HU into prefix (HU/EN) and numeric part so number can be on its own line
+  const _huMatch = (coverHu || '').match(/(HU|EN)?\s*(\d+)/i) || [];
+  const coverHuPrefix = _huMatch[1] ? _huMatch[1].toUpperCase() : '';
+  const coverHuNumber = _huMatch[2] || '';
+
+  // Build the cover as plain paragraphs (no table) keeping styles and left indent
+  const coverSpacers = Array.from({ length: 8 }, () =>
+    new Paragraph({ spacing: { before: 0, after: 280 }, children: [new TextRun({ text: '' })] })
   );
+
+  const coverParagraphs = [
+    // Línea 1: CERTIFICACIÓN + prefix HU/EN (e.g. "CERTIFICACIÓN HU")
+    new Paragraph({
+      alignment: AlignmentType.RIGHT,
+      spacing: { before: 0, after: 0 },
+      children: [
+        new TextRun({ text: 'C', bold: true, font: 'Calibri', size: 55, color: 'FF8000' }),
+        new TextRun({ text: 'ERTIFICACIÓN', bold: true, font: 'Calibri', size: 53, color: 'FF8000' }),
+        new TextRun({ text: coverHuPrefix ? ` ${coverHuPrefix}` : '', bold: true, font: 'Calibri', size: 53, color: 'FF8000' }),
+      ],
+    }),
+    // Línea 2: solo el número (e.g. 30642)
+    new Paragraph({
+      alignment: AlignmentType.RIGHT,
+      spacing: { before: 0, after: 360 },
+      children: [
+        new TextRun({ text: coverHuNumber || coverHu, bold: true, font: 'Calibri', size: 53, color: 'FF8000' }),
+      ],
+    }),
+    // Línea 3: Portal Kuara — negrita, alineado a la derecha
+    new Paragraph({
+      alignment: AlignmentType.RIGHT,
+      spacing: { before: 0, after: 100 },
+      children: [new TextRun({ text: 'Portal Kuara', bold: true, font: 'Calibri', size: 23, color: '000000' })],
+    }),
+    // Línea 4: Nombre de la HU/EN — alineado a la derecha
+    new Paragraph({
+      alignment: AlignmentType.RIGHT,
+      indent: { left: 400 },
+      spacing: { before: 0, after: 100 },
+      children: [new TextRun({ text: hu || folderName, font: 'Calibri', size: 23, color: '000000' })],
+    }),
+    // Línea 5: V1.0 — negrita, alineado a la derecha
+    new Paragraph({
+      alignment: AlignmentType.RIGHT,
+      indent: { left: 400 },
+      spacing: { before: 0, after: 80 },
+      children: [new TextRun({ text: 'V1.0', bold: true, font: 'Calibri', size: 20, color: '000000' })],
+    }),
+    // Línea 6: Fecha — pequeño, gris, alineado a la derecha
+    new Paragraph({
+      alignment: AlignmentType.RIGHT,
+      indent: { left: 400 },
+      spacing: { before: 0, after: 0 },
+      children: [new TextRun({ text: fecha, font: 'Calibri', size: 16, color: '777777' })],
+    }),
+  ];
+
+  // Push the cover paragraphs roughly to the vertical center of the page
+  children.push(...coverSpacers);
+  children.push(...coverParagraphs);
+  // Add a page break after the cover
+  children.push(new Paragraph({ children: [new PageBreak()] }));
 
   for (let i = 0; i < casos.length; i++) {
     if (i > 0) {
