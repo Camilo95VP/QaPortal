@@ -1,6 +1,7 @@
 import {
   Document, Packer, Table, TableRow, TableCell, Paragraph, TextRun,
   WidthType, AlignmentType, VerticalAlign, BorderStyle,
+  Header, ImageRun, TabStopType,
   HeadingLevel, PageBreak
 } from 'docx';
 import { saveAs } from 'file-saver';
@@ -13,6 +14,25 @@ export interface CasoManual {
   dado: string;
   cuando: string;
   entonces: string;
+}
+
+// Common table border style used across generated tables
+// OOXML w:sz minimum valid value is 2; docx default is 4 (= 0.5pt)
+const BORDER = {
+  top: { style: BorderStyle.SINGLE, size: 4, color: '000000' },
+  bottom: { style: BorderStyle.SINGLE, size: 4, color: '000000' },
+  left: { style: BorderStyle.SINGLE, size: 4, color: '000000' },
+  right: { style: BorderStyle.SINGLE, size: 4, color: '000000' },
+};
+
+function labelCell(text: string, colSpan = 1, _widthPct?: number): TableCell {
+  return new TableCell({
+    columnSpan: colSpan,
+    verticalAlign: VerticalAlign.CENTER,
+    borders: BORDER,
+    margins: { top: 100, bottom: 100, left: 100, right: 100 },
+    children: [new Paragraph({ children: [new TextRun({ text, bold: true, font: 'Calibri', size: 20 })] })],
+  });
 }
 
 function extractHuIdentifier(value: string): string {
@@ -34,83 +54,71 @@ export function parseCasosManuales(md: string, folderName = ''): { hu: string; c
     extractHuIdentifier(folderName);
 
   const casos: CasoManual[] = [];
-  // Split by CP sections (accept both '### CP-MXX:' and 'CP-MXX:' at line start)
-  const cpBlocks = md.split(/(?=^(?:\s*###\s*)?CP-M\d+)/m).filter(b => /^(?:\s*###\s*)?CP-M\d+/.test(b));
 
-  for (const block of cpBlocks) {
-    const headerMatch = block.match(/^(?:\s*###\s*)?(CP-M\d+)[:\-]?\s*(.*)/m);
-    if (!headerMatch) continue;
-    const id = headerMatch[1];
-    const titulo = headerMatch[2].trim();
+  const lines = (md || '').split(/\r?\n/);
+  let current: CasoManual | null = null;
 
-    // Escenario
-    // Accept either bold '**Escenario:**' or plain 'Escenario:' at line start
-    const escMatch = block.match(/(?:\*\*Escenario:\*\*|^Escenario:)\s*(.*)/im);
-    const escenario = escMatch ? escMatch[1].trim() : '';
-
-    // Collect Dado/Cuando/Entonces/Y lines
-    const lines = block.split('\n');
-    let dado = '';
-    let cuando = '';
-    let entonces = '';
-    let currentBlock: 'dado' | 'cuando' | 'entonces' | null = null;
-
-    for (const rawLine of lines) {
-      const line = rawLine.trim();
-      if (/^Dado\b/i.test(line)) {
-        currentBlock = 'dado';
-        dado += line.replace(/^Dado\s*/i, '').trim() + '\n';
-      } else if (/^Cuando\b/i.test(line)) {
-        currentBlock = 'cuando';
-        cuando += line.replace(/^Cuando\s*/i, '').trim() + '\n';
-      } else if (/^Entonces\b/i.test(line) || /^Then\b/i.test(line)) {
-        currentBlock = 'entonces';
-        const cleaned = line.replace(/^(Entonces|Then)\s*/i, '').trim();
-        entonces += cleaned + '\n';
-      } else if (/^Y\b/i.test(line)) {
-        const text = line.replace(/^Y\s*/i, '').trim();
-        if (currentBlock === 'dado') dado += 'Y ' + text + '\n';
-        else if (currentBlock === 'cuando') cuando += 'Y ' + text + '\n';
-        else if (currentBlock === 'entonces') entonces += 'Y ' + text + '\n';
-      }
+  const pushCurrent = () => {
+    if (current) {
+      casos.push(current);
+      current = null;
     }
+  };
 
-    casos.push({
-      id, titulo, escenario,
-      dado: dado.trim(),
-      cuando: cuando.trim(),
-      entonces: entonces.trim()
-    });
+  for (let i = 0; i < lines.length; i++) {
+    const rawLine = lines[i];
+    const line = rawLine.trim();
+    // Prefer explicit heading format: '## CP-M01 - Title' (common)
+    const hMatch = line.match(/^#{1,6}\s*(CP-M\d+)\s*[-:\.]?\s*(.*)/i) || line.match(/^##?\s*(CP-M\d+)\s*-?\s*(.*)/i);
+    if (hMatch) {
+      pushCurrent();
+      current = { id: hMatch[1].toUpperCase(), titulo: hMatch[2] || '', escenario: '', dado: '', cuando: '', entonces: '' };
+      continue;
+    }
+    if (!current) continue;
+    const escMatch = line.match(/^\*?\*?Escenario:?\*?\*?\s*(.*)/i);
+    if (escMatch) {
+      current.escenario = escMatch[1] || current.escenario;
+      continue;
+    }
+    const dadoMatch = line.match(/^Dado[:\s-]+(.*)/i);
+    if (dadoMatch) {
+      current.dado = dadoMatch[1] || '';
+      continue;
+    }
+    const cuandoMatch = line.match(/^Cuando[:\s-]+(.*)/i);
+    if (cuandoMatch) {
+      current.cuando = cuandoMatch[1] || '';
+      continue;
+    }
+    const entoncesMatch = line.match(/^Entonces[:\s-]+(.*)/i);
+    if (entoncesMatch) {
+      current.entonces = entoncesMatch[1] || '';
+      continue;
+    }
   }
+
+  pushCurrent();
+
+  // Fallback: if no casos found, try scanning for CP-M tokens anywhere in the file
+  if (casos.length === 0) {
+    const fallback: CasoManual[] = [];
+    const tokenRegex = /\b(CP-M\d{1,})\b[\s\-:\.]*([^\r\n]*)/gi;
+    let m: RegExpExecArray | null;
+    while ((m = tokenRegex.exec(md)) !== null) {
+      const id = m[1].toUpperCase();
+      const title = (m[2] || '').trim();
+      fallback.push({ id, titulo: title, escenario: '', dado: '', cuando: '', entonces: '' });
+    }
+    if (fallback.length > 0) {
+      return { hu, casos: fallback };
+    }
+  }
+
   return { hu, casos };
 }
 
-/* ───── Helpers para celdas ───── */
-const BORDER = {
-  top: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
-  bottom: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
-  left: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
-  right: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
-};
-
-function labelCell(text: string, colSpan = 1, widthPct?: number): TableCell {
-  return new TableCell({
-    columnSpan: colSpan,
-    width: widthPct ? { size: widthPct, type: WidthType.PERCENTAGE } : undefined,
-    // removed shading to avoid gray background in table fields
-    verticalAlign: VerticalAlign.CENTER,
-    borders: BORDER,
-    margins: { top: 100, bottom: 100, left: 100, right: 100 },
-    children: [
-      new Paragraph({
-        spacing: { before: 40, after: 40 },
-        children: [new TextRun({ text, bold: true, font: 'Calibri', size: 20 })],
-      }),
-    ],
-  });
-}
-
-function valueCell(text: string, colSpan = 1, widthPct?: number): TableCell {
+function valueCell(text: string, colSpan = 1, _widthPct?: number): TableCell {
   // Split text by newlines and create separate paragraphs
   const paragraphs = (text || '').split('\n').filter(Boolean).map(
     line => new Paragraph({
@@ -123,7 +131,6 @@ function valueCell(text: string, colSpan = 1, widthPct?: number): TableCell {
   }
   return new TableCell({
     columnSpan: colSpan,
-    width: widthPct ? { size: widthPct, type: WidthType.PERCENTAGE } : undefined,
     verticalAlign: VerticalAlign.CENTER,
     borders: BORDER,
     margins: { top: 100, bottom: 100, left: 100, right: 100 },
@@ -177,9 +184,14 @@ function gherkinCell(keyword: 'Dado' | 'Cuando' | 'Entonces', text: string): Tab
 }
 
 /* ───── Generador de tabla por CP ───── */
+// A4 content width with 2.54 cm margins ≈ 9026 twips (DXA)
+// 6 columns: label(1625) | value(2300) | label(1444) | value(1219) | value(1219) | value(1219) = 9026
+const TABLE_COL_WIDTHS = [1625, 2300, 1444, 1219, 1219, 1219];
+
 function buildCasoTable(caso: CasoManual, hu: string, ejecutadoPor: string, fecha: string): Table {
   return new Table({
-    width: { size: 100, type: WidthType.PERCENTAGE },
+    width: { size: 9026, type: WidthType.DXA },
+    columnWidths: TABLE_COL_WIDTHS,
     rows: [
       // FILA 1: Fecha de ejecución | valor | Ejecutado por | valor
       new TableRow({
@@ -358,8 +370,54 @@ export async function generarPlantillaWord(
     children.push(buildCasoTable(casos[i], hu, ejecutadoPor, fecha));
   }
 
+  // Fetch Sofka and Kuara logos and place them side-by-side in the header using a tab stop
+  let headerSection: any = {};
+  try {
+    function arrayBufferToBase64(buf: ArrayBuffer) {
+      const bytes = new Uint8Array(buf);
+      let binary = '';
+      const chunkSize = 0x8000;
+      for (let i = 0; i < bytes.length; i += chunkSize) {
+        const chunk = bytes.subarray(i, i + chunkSize);
+        binary += String.fromCharCode.apply(null, Array.from(chunk));
+      }
+      return btoa(binary);
+    }
+    const cmToPx = (cm: number) => Math.round(cm * 37.7952755906);
+    const toDataUri = async (url: string) => {
+      const r = await fetch(url);
+      if (!r.ok) return null;
+      return `data:image/png;base64,${arrayBufferToBase64(await r.arrayBuffer())}`;
+    };
+
+    const [sofkaUri, kuaraUri] = await Promise.all([
+      toDataUri('assets/Logo Sofka.png'),
+      toDataUri('assets/Logo Kuara.png'),
+    ]);
+
+    const headerChildren: any[] = [];
+    if (sofkaUri) {
+      headerChildren.push(new ImageRun(({ type: 'png', data: sofkaUri, transformation: { width: cmToPx(5.23), height: cmToPx(1.48) }, altText: { title: 'Sofka', description: '', name: 'img-sofka', id: 1 } } as any)));
+    }
+    if (kuaraUri) {
+      // Tab character pushes Kuara to the right-aligned tab stop
+      headerChildren.push(new TextRun({ text: '\t' }));
+      headerChildren.push(new ImageRun(({ type: 'png', data: kuaraUri, transformation: { width: cmToPx(6.52), height: cmToPx(1.67) }, altText: { title: 'Kuara', description: '', name: 'img-kuara', id: 2 } } as any)));
+    }
+    if (headerChildren.length > 0) {
+      const headerPara = new Paragraph({
+        // 9026 twips ≈ A4 content width with 2.54cm margins
+        tabStops: [{ type: TabStopType.RIGHT, position: 9026 }],
+        children: headerChildren,
+      });
+      headerSection = { headers: { default: new Header({ children: [headerPara] }) } };
+    }
+  } catch (e) {
+    console.warn('Could not load header images', e);
+  }
+
   const doc = new Document({
-    sections: [{ children }],
+    sections: [Object.assign({ children }, headerSection)],
   });
 
   const blob = await Packer.toBlob(doc);
