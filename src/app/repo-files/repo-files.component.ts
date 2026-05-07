@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpClientModule } from '@angular/common/http';
 import { generarPlantillaWord } from './plantilla-word.service';
-import { Document as DocxDocument, Packer as DocxPacker, Paragraph as DocxParagraph, TextRun as DocxTextRun, Table as DocxTable, TableRow as DocxTableRow, TableCell as DocxTableCell, HeadingLevel as DocxHeadingLevel, ImageRun as DocxImageRun, AlignmentType as DocxAlignmentType, ShadingType as DocxShadingType } from 'docx';
+import { Document as DocxDocument, Packer as DocxPacker, Paragraph as DocxParagraph, TextRun as DocxTextRun, Table as DocxTable, TableRow as DocxTableRow, TableCell as DocxTableCell, HeadingLevel as DocxHeadingLevel, ImageRun as DocxImageRun, AlignmentType as DocxAlignmentType, ShadingType as DocxShadingType, Header as DocxHeader, TabStopType as DocxTabStopType } from 'docx';
 
 interface HuFolder {
   name: string;
@@ -623,21 +623,51 @@ export class RepoFilesComponent implements OnInit {
 
           container.childNodes.forEach(n => children.push(...walkNode(n)));
 
-          // Try to include header image as first block if available
-          this.fetchImageDataUrl('/assets/encabezado.png').then(dataUrl => {
-            const sections: any[] = [];
-            const secChildren: any[] = [];
-            if (dataUrl) {
-              const arr = dataUrlToUint8(dataUrl);
-              try {
-                // Cast to any to satisfy TypeScript overloads of ImageRun options
-                const imgOpts: any = { data: arr, transformation: { width: 600, height: Math.round(600 * 0.25) } };
-                secChildren.push(new DocxParagraph({ children: [new DocxImageRun(imgOpts as any)], alignment: DocxAlignmentType.CENTER }));
-              } catch (e) {
-                // ignore image errors
+          // Build document with Sofka + Kuara logos in header (same as plantilla-word.service.ts)
+          const buildAndDownload = async () => {
+            // Helper: ArrayBuffer → base64 data URI
+            function arrayBufferToBase64(buf: ArrayBuffer) {
+              const bytes = new Uint8Array(buf);
+              let binary = '';
+              const chunkSize = 0x8000;
+              for (let i = 0; i < bytes.length; i += chunkSize) {
+                binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + chunkSize)));
               }
+              return btoa(binary);
             }
-            // Título centrado: "Diseño de casos de prueba" + nombre de la HU
+            const cmToPx = (cm: number) => Math.round(cm * 37.7952755906);
+            const toDataUri = async (url: string) => {
+              try {
+                const r = await fetch(url);
+                if (!r.ok) return null;
+                return `data:image/png;base64,${arrayBufferToBase64(await r.arrayBuffer())}`;
+              } catch { return null; }
+            };
+
+            const [sofkaUri, kuaraUri] = await Promise.all([
+              toDataUri('assets/Logo Sofka.png'),
+              toDataUri('assets/Logo Kuara.png'),
+            ]);
+
+            let headerSection: any = {};
+            const headerChildren: any[] = [];
+            if (sofkaUri) {
+              headerChildren.push(new DocxImageRun(({ type: 'png', data: sofkaUri, transformation: { width: cmToPx(5.23), height: cmToPx(1.48) }, altText: { title: 'Sofka', description: '', name: 'img-sofka', id: 1 } } as any)));
+            }
+            if (kuaraUri) {
+              headerChildren.push(new DocxTextRun({ text: '\t' }));
+              headerChildren.push(new DocxImageRun(({ type: 'png', data: kuaraUri, transformation: { width: cmToPx(6.52), height: cmToPx(1.67) }, altText: { title: 'Kuara', description: '', name: 'img-kuara', id: 2 } } as any)));
+            }
+            if (headerChildren.length > 0) {
+              const headerPara = new DocxParagraph({
+                tabStops: [{ type: DocxTabStopType.RIGHT, position: 9026 }],
+                children: headerChildren,
+              });
+              headerSection = { headers: { default: new DocxHeader({ children: [headerPara] }) } };
+            }
+
+            // Body: title + HU name + content
+            const secChildren: any[] = [];
             const huName = (folderObj.name || folderObj.path || '').trim();
             secChildren.push(
               new DocxParagraph({
@@ -656,23 +686,24 @@ export class RepoFilesComponent implements OnInit {
               );
             }
             secChildren.push(...children);
-            sections.push({ children: secChildren });
-            const doc = new DocxDocument({ sections });
-            DocxPacker.toBlob(doc).then(blob => {
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement('a');
-              a.href = url;
-              a.download = filename.replace(/\.[^.]+$/, '') + '.docx';
-              document.body.appendChild(a);
-              a.click();
-              setTimeout(() => { try { document.body.removeChild(a); URL.revokeObjectURL(url); } catch (e) {} }, 500);
-              this.statusMessage = 'Documento Word (.docx) descargado.';
-            }).catch(err => {
-              console.error('docx export error', err);
-              this.statusMessage = 'Error generando documento Word.';
+
+            const doc = new DocxDocument({
+              sections: [Object.assign({ children: secChildren }, headerSection)],
             });
-          }).catch(() => {
-            this.statusMessage = 'Error cargando imagen de encabezado.';
+            const blob = await DocxPacker.toBlob(doc);
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename.replace(/\.[^.]+$/, '') + '.docx';
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => { try { document.body.removeChild(a); URL.revokeObjectURL(url); } catch (e) {} }, 500);
+            this.statusMessage = 'Documento Word (.docx) descargado.';
+          };
+
+          buildAndDownload().catch(err => {
+            console.error('docx export error', err);
+            this.statusMessage = 'Error generando documento Word.';
           });
         } catch (err) {
           console.error('word export error', err);
