@@ -1,8 +1,8 @@
 <div class="bulk-wrapper">
   <header class="bulk-header">
     <div>
-      <h1>Bulk Designer</h1>
-      <p class="bulk-subtitle">Genera prompts para múltiples HUs de un sprint</p>
+      <h1>Gestión de HUs</h1>
+      <p class="bulk-subtitle">Crear HUs y asociarlas a sprints; generar prompts en masa</p>
     </div>
     <div class="bulk-header-actions">
       <label class="btn btn--outline btn--file">
@@ -62,6 +62,7 @@
             <span class="status-badge" [class]="'status--' + item.estado">{{ item.estado }}</span>
           </td>
           <td>
+            <button class="btn" (click)="createHU(i)" title="Crear y asociar HU">➕ Crear HU</button>
             <button class="btn-icon" (click)="removeItem(i)" title="Eliminar">✖</button>
           </td>
         </tr>

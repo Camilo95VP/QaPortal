@@ -45,8 +45,7 @@
         <button type="button" *ngIf="selectedFile && !editing && selectedFile === 'casos_manuales.md'" class="btn-template" (click)="showPlantillaModal = true">📋 Generar plantilla</button>
         <button type="button" *ngIf="selectedFolder && !editing" class="btn-traza" (click)="verTrazabilidad()">📊 Trazabilidad</button>
         <button type="button" *ngIf="selectedFolder && !editing" class="btn-validar" (click)="ejecutarValidacion()">✅ Validar</button>
-        <button type="button" *ngIf="selectedFile && !editing" class="btn-historial" (click)="verHistorial()">📜 Historial</button>
-        <button type="button" *ngIf="selectedFile && !editing" class="btn-snapshot" (click)="crearSnapshotHistorial()">📸 Snapshot</button>
+        <!-- Historial feature removed -->
         <button type="button" *ngIf="editing" class="btn-save" (click)="$event.preventDefault(); saveFile()">&#10003; Guardar</button>
         <button type="button" *ngIf="editing" class="btn-cancel" (click)="$event.preventDefault(); cancelEdit()">&#x2715; Cancelar</button>
       </div>
@@ -160,26 +159,4 @@
   </div>
 </div>
 
-<!-- Historial Panel -->
-<div *ngIf="showHistorial" class="modal-overlay" (click)="cerrarHistorial()">
-  <div class="modal-box modal-box--wide" (click)="$event.stopPropagation()">
-    <h3>📜 Historial de Versiones</h3>
-    <div *ngIf="historialVersiones.length === 0" class="traza-empty">
-      No hay versiones anteriores. Usa "📸 Snapshot" para crear una antes de regenerar.
-    </div>
-    <div *ngIf="historialVersiones.length > 0" class="historial-content">
-      <div class="historial-sidebar">
-        <button *ngFor="let v of historialVersiones" class="historial-version-btn" [class.active]="selectedVersion === v" (click)="cargarVersionHistorial(v)">
-          {{ v }}
-        </button>
-      </div>
-      <div class="historial-viewer">
-        <pre *ngIf="historialContent">{{ historialContent }}</pre>
-        <p *ngIf="!historialContent" class="traza-empty">Selecciona una versión para ver su contenido.</p>
-      </div>
-    </div>
-    <div class="modal-actions">
-      <button class="btn-cancel" (click)="cerrarHistorial()">Cerrar</button>
-    </div>
-  </div>
-</div>
+<!-- Historial panel removed from UI -->

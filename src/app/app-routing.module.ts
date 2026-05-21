@@ -6,13 +6,15 @@ import { SprintsComponent } from './sprints/sprints.component';
 import { DashboardComponent } from './dashboard/dashboard.component';
 import { BulkDesignerComponent } from './bulk-designer/bulk-designer.component';
 
+import { SprintDetailComponent } from './sprints/sprint-detail.component';
 const routes: Routes = [
   { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
   { path: 'dashboard', component: DashboardComponent },
   { path: 'test-designer', component: TestDesignerComponent },
   { path: 'bulk-designer', component: BulkDesignerComponent },
   { path: 'repo-files', component: RepoFilesComponent },
-  { path: 'sprints', component: SprintsComponent }
+  { path: 'sprints', component: SprintsComponent },
+  { path: 'sprints/:id', component: SprintDetailComponent },
 ];
 
 @NgModule({

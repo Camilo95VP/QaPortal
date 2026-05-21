@@ -7,6 +7,7 @@ import { generarPlantillaWord } from './plantilla-word.service';
 import { TrazabilidadService } from '../shared/services/trazabilidad.service';
 import { ValidadorService } from '../shared/services/validador.service';
 import { TrazabilidadRow, ValidationResult } from '../shared/models/sprint.model';
+import { SprintService } from '../shared/services/sprint.service';
 import { Document as DocxDocument, Packer as DocxPacker, Paragraph as DocxParagraph, TextRun as DocxTextRun, Table as DocxTable, TableRow as DocxTableRow, TableCell as DocxTableCell, HeadingLevel as DocxHeadingLevel, ImageRun as DocxImageRun, AlignmentType as DocxAlignmentType, ShadingType as DocxShadingType } from 'docx';
 
 interface HuFolder {
@@ -58,16 +59,14 @@ export class RepoFilesComponent implements OnInit {
   validationResults: ValidationResult[] = [];
 
   // Historial
-  showHistorial = false;
-  historialVersiones: string[] = [];
-  historialContent = '';
-  selectedVersion = '';
+  // Historial removed: feature deprecated
 
   constructor(
     private http: HttpClient,
     private route: ActivatedRoute,
     private trazabilidadService: TrazabilidadService,
-    private validadorService: ValidadorService
+    private validadorService: ValidadorService,
+    private sprintService: SprintService
   ) {}
 
   ngOnInit(): void {
@@ -131,7 +130,7 @@ export class RepoFilesComponent implements OnInit {
     const filename = this.selectedFile;
     if (!folder || !filename) return;
     this.statusMessage = 'Guardando...';
-    const apiPath = `/api/repo-files/content?folder=${encodeURIComponent(folder.path)}&path=${encodeURIComponent(filename)}`;
+    const apiPath = `/api/repo-files/content?folder=${encodeURIComponent(this.folderApiPath(folder))}&path=${encodeURIComponent(filename)}`;
     this.http.put(apiPath, this.editContent, {
       headers: { 'Content-Type': 'text/plain; charset=utf-8' },
       responseType: 'json'
@@ -151,20 +150,26 @@ export class RepoFilesComponent implements OnInit {
     });
   }
 
+  /** Devuelve el path de carpeta incluyendo sprint prefix si aplica */
+  private folderApiPath(folder: HuFolder): string {
+    return folder.sprintId ? `${folder.sprintId}/${folder.path}` : folder.path;
+  }
+
   // Proceed to open a file after confirming discard/save
   private doOpenFile(folder: HuFolder, filename: string): void {
     this.selectedFolder = folder;
     this.selectedFile = filename;
     this.loading = true;
     this.selectedContent = '';
-    const assetPath = `/assets/repo-files/${encodeURIComponent(folder.path)}/${encodeURIComponent(filename)}`;
+    const folderPath = this.folderApiPath(folder);
+    const assetPath = `/assets/repo-files/${folderPath.split('/').map(encodeURIComponent).join('/')}/${encodeURIComponent(filename)}`;
     this.http.get(assetPath, { responseType: 'text' }).subscribe({
       next: (txt) => {
         this.selectedContent = txt;
         this.loading = false;
       },
       error: () => {
-        const apiPath = `/api/repo-files/content?folder=${encodeURIComponent(folder.path)}&path=${encodeURIComponent(filename)}`;
+        const apiPath = `/api/repo-files/content?folder=${encodeURIComponent(folderPath)}&path=${encodeURIComponent(filename)}`;
         this.http.get(apiPath, { responseType: 'text' }).subscribe({
           next: (txt) => {
             this.selectedContent = txt;
@@ -242,23 +247,55 @@ export class RepoFilesComponent implements OnInit {
     this.showDeleteModal = false;
     this.deleteTarget = null;
     this.statusMessage = `Eliminando ${folder.name}...`;
-    const apiPath = `/api/repo-files/folder?folder=${encodeURIComponent(folder.path)}`;
-    this.http.delete(apiPath).subscribe({
-      next: () => {
-        this.folders = this.folders.filter(f => f.path !== folder.path);
-        if (this.selectedFolder && this.selectedFolder.path === folder.path) {
-          this.selectedFolder = null;
-          this.selectedFile = '';
-          this.selectedContent = '';
+    const sprintId = this.currentSprintFilter;
+    const apiPath = `/api/repo-files/folder?folder=${encodeURIComponent(folder.path)}` + (sprintId ? `&sprint=${encodeURIComponent(sprintId)}` : '');
+
+    if (sprintId) {
+      // First remove HU from sprint (updates sprints.json), then delete physical folder
+      this.sprintService.removeHuFromSprint(sprintId, folder.name).subscribe({
+        next: () => {
+          // after sprint updated, delete folder files
+          this.http.delete(apiPath).subscribe({
+            next: () => {
+              this.folders = this.folders.filter(f => f.path !== folder.path);
+              if (this.selectedFolder && this.selectedFolder.path === folder.path) {
+                this.selectedFolder = null;
+                this.selectedFile = '';
+                this.selectedContent = '';
+              }
+              this.statusMessage = `Carpeta ${folder.name} eliminada.`;
+              setTimeout(() => { this.statusMessage = ''; }, 2500);
+            },
+            error: (err) => {
+              console.error('delete folder error', err);
+              this.statusMessage = 'Error eliminando la carpeta.';
+            }
+          });
+        },
+        error: (err) => {
+          console.error('remove hu from sprint error', err);
+          this.statusMessage = 'Error eliminando HU del sprint.';
         }
-        this.statusMessage = `Carpeta ${folder.name} eliminada.`;
-        setTimeout(() => { this.statusMessage = ''; }, 2500);
-      },
-      error: (err) => {
-        console.error('delete folder error', err);
-        this.statusMessage = 'Error eliminando la carpeta.';
-      }
-    });
+      });
+    } else {
+      // No sprint context: just delete folder
+      this.http.delete(apiPath).subscribe({
+        next: () => {
+          this.folders = this.folders.filter(f => f.path !== folder.path);
+          if (this.selectedFolder && this.selectedFolder.path === folder.path) {
+            this.selectedFolder = null;
+            this.selectedFile = '';
+            this.selectedContent = '';
+          }
+          this.statusMessage = `Carpeta ${folder.name} eliminada.`;
+          setTimeout(() => { this.statusMessage = ''; }, 2500);
+        },
+        error: (err) => {
+          console.error('delete folder error', err);
+          this.statusMessage = 'Error eliminando la carpeta.';
+        }
+      });
+    }
   }
 
   isOpen(folder: HuFolder): boolean {
@@ -348,27 +385,6 @@ export class RepoFilesComponent implements OnInit {
     }
 
     this.doOpenFile(folder, filename);
-    // Intentar assets estáticos, fallback al API
-    const assetPath = `/assets/repo-files/${encodeURIComponent(folder.path)}/${encodeURIComponent(filename)}`;
-    this.http.get(assetPath, { responseType: 'text' }).subscribe({
-      next: (txt) => {
-        this.selectedContent = txt;
-        this.loading = false;
-      },
-      error: () => {
-        const apiPath = `/api/repo-files/content?folder=${encodeURIComponent(folder.path)}&path=${encodeURIComponent(filename)}`;
-        this.http.get(apiPath, { responseType: 'text' }).subscribe({
-          next: (txt) => {
-            this.selectedContent = txt;
-            this.loading = false;
-          },
-          error: () => {
-            this.selectedContent = 'Error al cargar el archivo.';
-            this.loading = false;
-          }
-        });
-      }
-    });
   }
 
   /** Genera PDF (usando diálogo de impresión) a partir del markdown del archivo indicado.
@@ -381,7 +397,7 @@ export class RepoFilesComponent implements OnInit {
       this.statusMessage = 'Selecciona primero una carpeta/archivo.';
       return;
     }
-    const apiPath = `/api/repo-files/content?folder=${encodeURIComponent(folderObj.path)}&path=${encodeURIComponent(filename)}`;
+    const apiPath = `/api/repo-files/content?folder=${encodeURIComponent(this.folderApiPath(folderObj))}&path=${encodeURIComponent(filename)}`;
 
     this.http.get(apiPath, { responseType: 'text' }).subscribe({
       next: (md) => {
@@ -559,7 +575,7 @@ export class RepoFilesComponent implements OnInit {
       this.statusMessage = 'Selecciona primero una carpeta/archivo.';
       return;
     }
-    const apiPath = `/api/repo-files/content?folder=${encodeURIComponent(folderObj.path)}&path=${encodeURIComponent(filename)}`;
+    const apiPath = `/api/repo-files/content?folder=${encodeURIComponent(this.folderApiPath(folderObj))}&path=${encodeURIComponent(filename)}`;
 
     this.http.get(apiPath, { responseType: 'text' }).subscribe({
       next: (md) => {
@@ -908,61 +924,7 @@ export class RepoFilesComponent implements OnInit {
   // ═══════════════════════════════════════════
   // HISTORIAL
   // ═══════════════════════════════════════════
-
-  verHistorial(): void {
-    if (!this.selectedFolder) return;
-    const folder = this.selectedFolder.path;
-    const sprint = this.currentSprintFilter;
-    let url = `/api/repo-files/history?folder=${encodeURIComponent(folder)}`;
-    if (sprint) url += `&sprint=${encodeURIComponent(sprint)}`;
-
-    this.http.get<string[]>(url).subscribe({
-      next: (versions) => {
-        this.historialVersiones = versions;
-        this.showHistorial = true;
-        this.historialContent = '';
-        this.selectedVersion = '';
-      },
-      error: () => {
-        this.historialVersiones = [];
-        this.showHistorial = true;
-      }
-    });
-  }
-
-  cargarVersionHistorial(version: string): void {
-    if (!this.selectedFolder || !this.selectedFile) return;
-    const folder = this.selectedFolder.path;
-    const sprint = this.currentSprintFilter;
-    let url = `/api/repo-files/history/content?folder=${encodeURIComponent(folder)}&version=${encodeURIComponent(version)}&file=${encodeURIComponent(this.selectedFile)}`;
-    if (sprint) url += `&sprint=${encodeURIComponent(sprint)}`;
-
-    this.selectedVersion = version;
-    this.http.get(url, { responseType: 'text' }).subscribe({
-      next: (txt) => { this.historialContent = txt; },
-      error: () => { this.historialContent = '(archivo no encontrado en esta versión)'; }
-    });
-  }
-
-  cerrarHistorial(): void {
-    this.showHistorial = false;
-  }
-
-  crearSnapshotHistorial(): void {
-    if (!this.selectedFolder) return;
-    const folder = this.selectedFolder.path;
-    const sprint = this.currentSprintFilter;
-    let url = `/api/repo-files/history?folder=${encodeURIComponent(folder)}`;
-    if (sprint) url += `&sprint=${encodeURIComponent(sprint)}`;
-
-    this.http.post<any>(url, {}).subscribe({
-      next: (res) => {
-        this.statusMessage = `Snapshot creado: ${res.version}`;
-        setTimeout(() => this.statusMessage = '', 3000);
-      },
-      error: () => { this.statusMessage = 'Error creando snapshot'; }
-    });
-  }
+  // historial methods removed to simplify repo-files feature
 
   // ═══════════════════════════════════════════
   // EXPORT MASIVO

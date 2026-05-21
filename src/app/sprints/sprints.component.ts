@@ -22,7 +22,10 @@ export class SprintsComponent implements OnInit {
   constructor(private sprintService: SprintService, private router: Router) {}
 
   ngOnInit(): void {
-    this.loadSprints();
+    // Subscribe to the shared sprints stream so UI updates when sprints change elsewhere
+    this.sprintService.sprints$.subscribe(list => this.sprints = list);
+    // Trigger initial load
+    this.sprintService.getSprints().subscribe();
   }
 
   loadSprints(): void {
@@ -66,7 +69,7 @@ export class SprintsComponent implements OnInit {
   }
 
   viewSprint(sprint: Sprint): void {
-    this.router.navigate(['/repo-files'], { queryParams: { sprint: sprint.id } });
+    this.router.navigate(['/sprints', sprint.id]);
   }
 
   getActiveCount(): number {

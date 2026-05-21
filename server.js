@@ -230,7 +230,8 @@ app.delete('/api/repo-files/folder', async (req, res) => {
   if (!folder) return res.status(400).json({ error: 'folder query param required' });
   try {
     const INDEX_DIR = path.join(__dirname, 'src', 'assets', 'repo-files');
-    const target = path.resolve(path.join(INDEX_DIR, folder));
+    const sprint = req.query.sprint;
+    const target = sprint ? path.resolve(path.join(INDEX_DIR, sprint, folder)) : path.resolve(path.join(INDEX_DIR, folder));
     if (!target.startsWith(path.resolve(INDEX_DIR))) return res.status(400).json({ error: 'invalid path' });
     if (!fsSync.existsSync(target)) return res.status(404).json({ error: 'folder not found' });
     // remove directory recursively
@@ -350,11 +351,8 @@ app.post('/api/sprints/:id/hus', async (req, res) => {
       sprints[idx].hus.push(huName);
     }
     await writeSprints(sprints);
-
-    // Create HU subfolder inside sprint
-    const huDir = path.join(__dirname, 'src', 'assets', 'repo-files', req.params.id, huName);
-    if (!fsSync.existsSync(huDir)) fsSync.mkdirSync(huDir, { recursive: true });
-
+    // Nota: la carpeta y artefactos en repo-files son responsabilidad exclusiva del agente QA.
+    // Aquí solo se persiste el registro en sprints.json.
     res.json(sprints[idx]);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -367,7 +365,9 @@ app.delete('/api/sprints/:id/hus/:huName', async (req, res) => {
     const sprints = await readSprints();
     const idx = sprints.findIndex(s => s.id === req.params.id);
     if (idx === -1) return res.status(404).json({ error: 'sprint not found' });
-    sprints[idx].hus = sprints[idx].hus.filter(h => h !== req.params.huName);
+    // Decode and normalize to safely match regardless of URL encoding or case differences
+    const huToRemove = decodeURIComponent(req.params.huName).trim();
+    sprints[idx].hus = sprints[idx].hus.filter(h => decodeURIComponent(h).trim() !== huToRemove);
     await writeSprints(sprints);
     res.json(sprints[idx]);
   } catch (err) {
@@ -400,74 +400,7 @@ app.get('/api/sprints/:id/hus', async (req, res) => {
   }
 });
 
-// ══════════════════════════════════════════════════════
-// HISTORIAL API
-// ══════════════════════════════════════════════════════
-
-// Get history versions for a HU folder
-app.get('/api/repo-files/history', async (req, res) => {
-  const folder = req.query.folder;
-  const sprint = req.query.sprint;
-  if (!folder) return res.status(400).json({ error: 'folder required' });
-  try {
-    const INDEX_DIR = path.join(__dirname, 'src', 'assets', 'repo-files');
-    const basePath = sprint ? path.join(INDEX_DIR, sprint, folder) : path.join(INDEX_DIR, folder);
-    const histDir = path.join(basePath, 'historial');
-    if (!fsSync.existsSync(histDir)) return res.json([]);
-    const entries = await fs.readdir(histDir, { withFileTypes: true });
-    const versions = entries.filter(e => e.isDirectory()).map(e => e.name).sort().reverse();
-    res.json(versions);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Create a history snapshot before regeneration
-app.post('/api/repo-files/history', async (req, res) => {
-  const folder = req.query.folder;
-  const sprint = req.query.sprint;
-  if (!folder) return res.status(400).json({ error: 'folder required' });
-  try {
-    const INDEX_DIR = path.join(__dirname, 'src', 'assets', 'repo-files');
-    const basePath = sprint ? path.join(INDEX_DIR, sprint, folder) : path.join(INDEX_DIR, folder);
-    if (!fsSync.existsSync(basePath)) return res.status(404).json({ error: 'folder not found' });
-
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-    const versionName = `v_${timestamp}`;
-    const histDir = path.join(basePath, 'historial', versionName);
-    fsSync.mkdirSync(histDir, { recursive: true });
-
-    // Copy current files to history
-    const files = await fs.readdir(basePath, { withFileTypes: true });
-    for (const f of files) {
-      if (!f.isFile()) continue;
-      fsSync.copyFileSync(path.join(basePath, f.name), path.join(histDir, f.name));
-    }
-
-    res.json({ ok: true, version: versionName });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Get content of a history version file
-app.get('/api/repo-files/history/content', async (req, res) => {
-  const { folder, sprint, version, file } = req.query;
-  if (!folder || !version || !file) return res.status(400).json({ error: 'folder, version, file required' });
-  try {
-    const INDEX_DIR = path.join(__dirname, 'src', 'assets', 'repo-files');
-    const basePath = sprint
-      ? path.join(INDEX_DIR, sprint, folder, 'historial', version, file)
-      : path.join(INDEX_DIR, folder, 'historial', version, file);
-    const resolved = path.resolve(basePath);
-    if (!resolved.startsWith(path.resolve(INDEX_DIR))) return res.status(400).json({ error: 'invalid path' });
-    const content = await fs.readFile(resolved, 'utf8');
-    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-    res.send(content);
-  } catch (err) {
-    res.status(404).json({ error: 'file not found' });
-  }
-});
+// Historial endpoints removed (feature deprecated)
 
 // ══════════════════════════════════════════════════════
 // METRICS API

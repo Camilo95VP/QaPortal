@@ -1,0 +1,85 @@
+<div class="sd-wrapper">
+  <div class="sd-top">
+    <div class="sd-title">
+      <h1>Detalles del Sprint</h1>
+      <div class="sd-meta" *ngIf="sprint">
+        <div class="sprint-name">{{ sprint.nombre }}</div>
+        <div class="sprint-dates">{{ sprint.fechaInicio }} → {{ sprint.fechaFin }}</div>
+      </div>
+    </div>
+
+    <div class="sd-actions">
+      <button class="btn primary" (click)="goToAgregarHu()">➕ Agregar HU/EN</button>
+      <button class="btn outline" (click)="goToArtefactos()">📁 Ver artefactos</button>
+    </div>
+  </div>
+
+  <div class="sd-body">
+    <aside class="sd-left">
+      <section class="sd-metrics card">
+        <h4>Métricas</h4>
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="metric-icon">🗂️</div>
+            <div class="metric-text">HUs</div>
+            <div class="metric-value">{{ hus.length }}</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-icon">🤖</div>
+            <div class="metric-text">CPs Automatizables</div>
+            <div class="metric-value">{{ metrics.totalCPsAuto }}</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-icon">📝</div>
+            <div class="metric-text">CPs Manuales</div>
+            <div class="metric-value">{{ metrics.totalCPsManual }}</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="sd-hus card">
+        <h4>Historias de Usuario</h4>
+        <div *ngIf="hus.length === 0" class="empty">No hay HUs asociadas.</div>
+        <table *ngIf="hus.length > 0" class="hus-table">
+          <thead>
+            <tr>
+              <th>HU</th>
+              <th class="hide-sm">Artefactos</th>
+              <th class="actions-col">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let h of hus" (click)="selectHu(h)" [class.selected]="selectedHu?.name === h.name">
+              <td class="hu-name">{{ h.name }}</td>
+              <td class="hide-sm">{{ h.files?.length || 0 }}</td>
+              <td class="actions-col">
+                <button class="btn sm" (click)="goToAgregarHu(h.name); $event.stopPropagation()">➕ Agregar HU/EN</button>
+                <button class="btn sm outline" (click)="goToArtefactos(h.name); $event.stopPropagation()">📁 Artefactos</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+    </aside>
+
+    <main class="sd-right">
+      <div class="placeholder card" *ngIf="!selectedHu">
+        <h4>Vista rápida</h4>
+        <p>Selecciona una historia para ver detalles o crear un nuevo diseño de casos. Las métricas se calculan automáticamente.</p>
+      </div>
+
+      <div class="card hu-detail" *ngIf="selectedHu">
+        <h4>{{ selectedHu.name }}</h4>
+        <div class="meta-row"><strong>Habilitador:</strong> {{ selectedHu.habilitador || '—' }}</div>
+        <div class="meta-row"><strong>Descripción:</strong>
+          <p class="desc">{{ selectedHu.descripcion || 'Sin descripción disponible.' }}</p>
+        </div>
+        <div class="meta-row"><strong>Archivos:</strong> {{ selectedHu.files?.length || 0 }}</div>
+        <div style="margin-top:10px">
+          <button class="btn primary" (click)="goToAgregarHu(selectedHu.name)">➕ Agregar HU/EN</button>
+          <button class="btn outline" (click)="goToArtefactos(selectedHu.name)">📁 Ver artefactos</button>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>

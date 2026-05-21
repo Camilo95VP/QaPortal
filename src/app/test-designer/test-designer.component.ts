@@ -4,6 +4,7 @@ import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup, Validators, A
 import { HttpClient, HttpClientModule } from '@angular/common/http';
 import { Sprint, HuTemplate } from '../shared/models/sprint.model';
 import { SprintService } from '../shared/services/sprint.service';
+import { ActivatedRoute } from '@angular/router';
 
 @Component({
   selector: 'app-test-designer',
@@ -20,11 +21,12 @@ export class TestDesignerComponent implements OnInit {
   copied = false;
   templates: HuTemplate[] = [];
   sprints: Sprint[] = [];
+  sprintHus: any[] = [];
   selectedSprint = '';
   selectedTemplate = '';
   tipoApp = 'Web';
 
-  constructor(private fb: FormBuilder, private http: HttpClient, private sprintService: SprintService) {
+  constructor(private fb: FormBuilder, private http: HttpClient, private sprintService: SprintService, private route: ActivatedRoute) {
     this.form = this.fb.group({
       habilitador: [''],
       nombreHU: [''],
@@ -36,7 +38,103 @@ export class TestDesignerComponent implements OnInit {
 
   ngOnInit(): void {
     this.http.get<HuTemplate[]>('/assets/templates/hu-templates.json').subscribe(t => this.templates = t);
-    this.sprintService.getSprints().subscribe(s => this.sprints = s);
+    this.sprintService.getSprints().subscribe(s => {
+      this.sprints = s;
+      // If query params include sprint/hu, preselect after sprints loaded
+      this.route.queryParamMap.subscribe(q => {
+        const sp = q.get('sprint');
+        const hu = q.get('hu');
+        if (sp) {
+          this.onSprintChange(sp);
+          this.selectedSprint = sp;
+          if (hu) {
+            // wait briefly for sprintHus to load
+            setTimeout(() => this.onHuSelect(hu), 300);
+          }
+        }
+      });
+    });
+  }
+
+  onSprintChange(sprintId: string): void {
+    this.selectedSprint = sprintId;
+    this.selectedTemplate = '';
+    this.sprintHus = [];
+    if (!sprintId) return;
+    this.sprintService.getSprintHus(sprintId).subscribe(list => {
+      this.sprintHus = list || [];
+    });
+  }
+
+  onHuSelect(huName: string): void {
+    if (!huName || !this.selectedSprint) return;
+    const folderPath = `${this.selectedSprint}/${huName}`;
+
+    // First, try to read metadata.json and use its fields
+    this.http.get(`/api/repo-files/content?folder=${encodeURIComponent(folderPath)}&path=metadata.json`).subscribe({
+      next: (meta: any) => {
+        try {
+          const descripcion = meta.descripcion || '';
+          const criterios = meta.criterios || '';
+          const habilitador = meta.habilitador || meta.habilitadorId || '';
+          this.form.patchValue({ habilitador: habilitador || '', descripcion, criterios, nombreHU: huName });
+        } catch (e) {
+          // ignore parse errors
+          this.form.patchValue({ nombreHU: huName });
+        }
+      },
+      error: () => {
+        // Fallback: try cargar casos_automatizables.md para extraer contenido
+        this.http.get(`/api/repo-files/content?folder=${encodeURIComponent(folderPath)}&path=casos_automatizables.md`, { responseType: 'text' }).subscribe(
+          (txt: any) => {
+            const raw = String(txt || '');
+            // Extract first non-empty paragraph as description
+            const paragraphs = raw.split(/\n\s*\n/).map(p => p.trim()).filter(p => p);
+            const descripcion = paragraphs.length > 0 ? paragraphs[0].replace(/^#.+/,'').trim() : '';
+
+            // Try to find criteria lines starting with CA- or lines under a 'Criterios' heading
+            const criteriosLines: string[] = [];
+            const lines = raw.split(/\r?\n/).map(l => l.trim());
+            for (let i = 0; i < lines.length; i++) {
+              const l = lines[i];
+              if (/^CA-\d+/i.test(l)) {
+                criteriosLines.push(l);
+              }
+              // heading 'Criterios' followed by list
+              if (/^criterios?/i.test(l) && i + 1 < lines.length) {
+                // collect following lines that look like CA- or bullet lines
+                for (let j = i + 1; j < Math.min(i + 10, lines.length); j++) {
+                  const nl = lines[j];
+                  if (!nl) break;
+                  if (/^CA-\d+/i.test(nl) || /^[-*•]\s*CA-/i.test(nl) || /^[-*•]\s*/.test(nl)) {
+                    criteriosLines.push(nl.replace(/^[-*•]\s*/,'').trim());
+                  } else {
+                    break;
+                  }
+                }
+              }
+            }
+
+            const criterios = criteriosLines.join('\n');
+
+            // Try to infer habilitador from text (e.g., EN12345) or lines starting with 'Habilitador'
+            let habilitador = '';
+            const habMatch = raw.match(/Habilitador[:\s-]*([A-Z]{1,2}\d{2,6})/i);
+            if (habMatch && habMatch[1]) habilitador = habMatch[1].toUpperCase();
+            else {
+              const codeMatch = raw.match(/\b(EN\d{3,6}|HU\d{3,6})\b/i);
+              if (codeMatch && codeMatch[0]) habilitador = codeMatch[0].toUpperCase();
+            }
+
+            this.form.patchValue({ habilitador: habilitador || '', descripcion, criterios: criterios || '', nombreHU: huName });
+          },
+          () => {
+            // no metadata ni md, sólo set nombreHU
+            this.form.patchValue({ nombreHU: huName });
+          }
+        );
+      }
+    });
   }
 
   applyTemplate(templateId: string): void {

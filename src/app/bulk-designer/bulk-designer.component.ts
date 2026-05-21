@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpClientModule } from '@angular/common/http';
 import { SprintService } from '../shared/services/sprint.service';
 import { Sprint, BulkItem, HuTemplate } from '../shared/models/sprint.model';
+import { ActivatedRoute } from '@angular/router';
 
 @Component({
   selector: 'app-bulk-designer',
@@ -21,12 +22,24 @@ export class BulkDesignerComponent implements OnInit {
   showResults = false;
   copiedIndex = -1;
 
-  constructor(private http: HttpClient, private sprintService: SprintService) {}
+  constructor(private http: HttpClient, private sprintService: SprintService, private route: ActivatedRoute) {}
 
   ngOnInit(): void {
     this.sprintService.getSprints().subscribe(s => this.sprints = s);
     this.http.get<HuTemplate[]>('/assets/templates/hu-templates.json').subscribe(t => this.templates = t);
-    this.addItem();
+
+    this.route.queryParams.subscribe(params => {
+      const sprint = params['sprint'];
+      const hu = params['hu'];
+      if (sprint) {
+        this.selectedSprint = sprint;
+      }
+      this.items = [];
+      this.addItem();
+      if (hu) {
+        this.items[0].nombreHU = hu;
+      }
+    });
   }
 
   addItem(): void {
@@ -155,6 +168,24 @@ Genera los artefactos con los permisos del usuario y crea:
       }
     };
     reader.readAsText(file);
+  }
+
+  createHU(index: number): void {
+    const item = this.items[index];
+    const sprintId = (item.sprintId && item.sprintId.trim()) ? item.sprintId : this.selectedSprint;
+    if (!sprintId) { alert('Selecciona un sprint para asociar la HU.'); return; }
+    if (!item.nombreHU || !item.nombreHU.trim()) { alert('Nombre HU requerido'); return; }
+
+    this.sprintService.addHuToSprint(sprintId, item.nombreHU.trim()).subscribe({
+      next: () => {
+        // Solo registra la HU en sprints.json.
+        // Los artefactos (metadata.json, casos_*.md, spec.ts) son creados exclusivamente por el agente QA.
+        item.estado = 'completada';
+        item.sprintId = sprintId;
+        this.sprintService.getSprints().subscribe();
+      },
+      error: () => { alert('Error asociando HU al sprint en el servidor.'); }
+    });
   }
 
   private parseCSVLine(line: string): string[] {
