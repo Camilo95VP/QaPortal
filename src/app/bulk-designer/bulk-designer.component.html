@@ -1,0 +1,95 @@
+<div class="bulk-wrapper">
+  <header class="bulk-header">
+    <div>
+      <h1>Bulk Designer</h1>
+      <p class="bulk-subtitle">Genera prompts para múltiples HUs de un sprint</p>
+    </div>
+    <div class="bulk-header-actions">
+      <label class="btn btn--outline btn--file">
+        📥 Importar CSV
+        <input type="file" accept=".csv" (change)="importCSV($event)" hidden />
+      </label>
+    </div>
+  </header>
+
+  <!-- Sprint Selector -->
+  <div class="bulk-config">
+    <div class="config-field">
+      <label>Sprint</label>
+      <select [(ngModel)]="selectedSprint">
+        <option value="">Sin sprint (legacy)</option>
+        <option *ngFor="let s of sprints" [value]="s.id">{{ s.nombre }}</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Items Table -->
+  <div class="bulk-table-wrapper">
+    <table class="bulk-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Nombre HU</th>
+          <th>Descripción</th>
+          <th>Criterios</th>
+          <th>Tipo</th>
+          <th>Template</th>
+          <th>Estado</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let item of items; let i = index" [class.row--completed]="item.estado === 'completada'">
+          <td class="cell-num">{{ i + 1 }}</td>
+          <td><input type="text" [(ngModel)]="item.nombreHU" placeholder="HU30628" /></td>
+          <td><textarea [(ngModel)]="item.descripcion" rows="2" placeholder="Descripción..."></textarea></td>
+          <td><textarea [(ngModel)]="item.criterios" rows="2" placeholder="CA-01: ..."></textarea></td>
+          <td>
+            <select [(ngModel)]="item.tipoApp">
+              <option>Web</option>
+              <option>API REST</option>
+              <option>Móvil</option>
+              <option>Hybrid</option>
+            </select>
+          </td>
+          <td>
+            <select (change)="applyTemplate(i, $any($event.target).value)">
+              <option value="">Ninguno</option>
+              <option *ngFor="let t of templates" [value]="t.id">{{ t.nombre }}</option>
+            </select>
+          </td>
+          <td>
+            <span class="status-badge" [class]="'status--' + item.estado">{{ item.estado }}</span>
+          </td>
+          <td>
+            <button class="btn-icon" (click)="removeItem(i)" title="Eliminar">✖</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="bulk-actions">
+    <button class="btn btn--outline" (click)="addItem()">+ Agregar HU</button>
+    <button class="btn btn--primary" (click)="generateAll()" [disabled]="items.length === 0">
+      ⚡ Generar Todos los Prompts ({{ items.length }})
+    </button>
+  </div>
+
+  <!-- Results -->
+  <section class="bulk-results" *ngIf="showResults && generatedPrompts.length > 0">
+    <div class="results-header">
+      <h2>Prompts Generados ({{ generatedPrompts.length }})</h2>
+      <button class="btn btn--outline" (click)="copyAll()">📋 Copiar Todos</button>
+    </div>
+    <div *ngFor="let prompt of generatedPrompts; let i = index" class="prompt-card">
+      <div class="prompt-card__header">
+        <span class="prompt-card__num">#{{ i + 1 }}</span>
+        <button class="btn btn--sm btn--copy" (click)="copyPrompt(i)">
+          {{ copiedIndex === i ? '✅ Copiado' : '📋 Copiar' }}
+        </button>
+      </div>
+      <pre class="prompt-card__content">{{ prompt }}</pre>
+    </div>
+  </section>
+</div>

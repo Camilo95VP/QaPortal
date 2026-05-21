@@ -1,7 +1,6 @@
 <header class="toolbar">
   <div class="toolbar-left">
     <div class="logo" aria-hidden>
-      <!-- Imagen exacta proporcionada por el usuario en assets -->
       <img src="../assets/robotpng.png" alt="QA Robot" class="logo-img" />
     </div>
     <div class="brand">
@@ -10,24 +9,29 @@
   </div>
 
   <nav class="toolbar-nav" role="navigation" aria-label="Main navigation">
-    <a routerLink="/test-designer" class="nav-btn" aria-label="Ir a Test Designer">
-      <span class="nav-icon" aria-hidden>
-        <!-- lightning icon -->
-        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="20" height="20">
-          <path d="M13 2L3 14h7l-1 8L21 10h-7l-1-8z" fill="#0b4a86" />
-        </svg>
-      </span>
+    <a routerLink="/dashboard" routerLinkActive="nav-btn--active" class="nav-btn" aria-label="Dashboard">
+      <span class="nav-icon" aria-hidden>📊</span>
+      <span class="nav-label">Dashboard</span>
+    </a>
+
+    <a routerLink="/test-designer" routerLinkActive="nav-btn--active" class="nav-btn" aria-label="Ir a Test Designer">
+      <span class="nav-icon" aria-hidden>⚡</span>
       <span class="nav-label">Agente</span>
     </a>
 
-    <a routerLink="/repo-files" class="nav-btn" aria-label="Ir a Repo Files">
-      <span class="nav-icon" aria-hidden>
-        <!-- folder icon -->
-        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="20" height="20">
-          <path d="M10 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-8l-2-2z" fill="#0b4a86"/>
-        </svg>
-      </span>
+    <a routerLink="/bulk-designer" routerLinkActive="nav-btn--active" class="nav-btn" aria-label="Ir a Bulk Designer">
+      <span class="nav-icon" aria-hidden>📦</span>
+      <span class="nav-label">Bulk</span>
+    </a>
+
+    <a routerLink="/repo-files" routerLinkActive="nav-btn--active" class="nav-btn" aria-label="Ir a Repo Files">
+      <span class="nav-icon" aria-hidden>📁</span>
       <span class="nav-label">Diseños</span>
+    </a>
+
+    <a routerLink="/sprints" routerLinkActive="nav-btn--active" class="nav-btn" aria-label="Ir a Sprints">
+      <span class="nav-icon" aria-hidden>🏃</span>
+      <span class="nav-label">Sprints</span>
     </a>
   </nav>
 </header>

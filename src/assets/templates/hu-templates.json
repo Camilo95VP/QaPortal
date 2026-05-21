@@ -1,0 +1,51 @@
+[
+  {
+    "id": "crud",
+    "nombre": "CRUD Estándar",
+    "descripcion": "Como usuario del sistema, necesito poder crear, consultar, editar y eliminar registros de [ENTIDAD] para gestionar la información del módulo.",
+    "criterios": "CA-01: El sistema debe permitir crear un nuevo registro con los campos obligatorios validados.\nCA-02: El sistema debe mostrar la lista de registros con paginación y filtros.\nCA-03: El sistema debe permitir editar un registro existente validando campos obligatorios.\nCA-04: El sistema debe solicitar confirmación antes de eliminar un registro.\nCA-05: El sistema debe mostrar mensajes de éxito/error en cada operación.\nCA-06: El sistema debe validar permisos del usuario antes de permitir cada acción.",
+    "contexto": "Validaciones de campos obligatorios on blur.\nMensajes de error específicos por tipo de validación (requerido, formato, longitud).\nRefrescar la tabla después de cada operación exitosa."
+  },
+  {
+    "id": "login",
+    "nombre": "Login / Autenticación",
+    "descripcion": "Como usuario, necesito autenticarme en el sistema con mis credenciales para acceder a las funcionalidades según mi rol.",
+    "criterios": "CA-01: El sistema debe validar que usuario y contraseña son campos obligatorios.\nCA-02: El sistema debe autenticar contra el servicio de directorio activo.\nCA-03: El sistema debe bloquear la cuenta después de 3 intentos fallidos.\nCA-04: El sistema debe redirigir al dashboard correspondiente según el rol del usuario.\nCA-05: El sistema debe mostrar mensaje de error específico (credenciales inválidas, cuenta bloqueada, servicio no disponible).\nCA-06: El sistema debe manejar la expiración de sesión y redirigir al login.",
+    "contexto": "Integración con servicio de autenticación corporativo.\nManejo de tokens JWT con refresh token.\nRedirección por roles: admin → /admin, operador → /operaciones."
+  },
+  {
+    "id": "formulario-validaciones",
+    "nombre": "Formulario con Validaciones",
+    "descripcion": "Como usuario, necesito completar el formulario de [NOMBRE] con validaciones en tiempo real para asegurar la calidad de los datos ingresados.",
+    "criterios": "CA-01: El sistema debe validar campos obligatorios al perder foco (blur).\nCA-02: El sistema debe validar formato de email, teléfono y documentos.\nCA-03: El sistema debe validar longitud mínima y máxima de campos de texto.\nCA-04: El sistema debe mostrar mensajes de error inline debajo de cada campo.\nCA-05: El sistema debe deshabilitar el botón de envío hasta que el formulario sea válido.\nCA-06: El sistema debe mostrar modal de confirmación antes de enviar.\nCA-07: El sistema debe limpiar el formulario después de envío exitoso.",
+    "contexto": "Validaciones on blur (no on submit).\nFormato documento: 8-15 caracteres alfanuméricos.\nEmail: patrón estándar RFC 5322.\nTeléfono: +XX XXXXXXXXXX (10-15 dígitos)."
+  },
+  {
+    "id": "api-integracion",
+    "nombre": "Integración API REST",
+    "descripcion": "Como sistema, necesito consumir el servicio REST de [SERVICIO] para obtener/enviar información necesaria para el proceso de [PROCESO].",
+    "criterios": "CA-01: El sistema debe enviar la petición con los headers de autenticación correctos.\nCA-02: El sistema debe manejar respuesta exitosa (200/201) y mapear los datos al modelo interno.\nCA-03: El sistema debe manejar error 400 (Bad Request) mostrando detalle de validación.\nCA-04: El sistema debe manejar error 401/403 redirigiendo al login.\nCA-05: El sistema debe manejar error 500 mostrando mensaje genérico y logueando detalle.\nCA-06: El sistema debe implementar timeout de 30 segundos y reintentar 1 vez.\nCA-07: El sistema debe mostrar spinner durante la petición y deshabilitar acciones.",
+    "contexto": "Endpoint: POST /api/v1/[recurso].\nHeaders requeridos: Authorization Bearer, Content-Type application/json.\nTimeout configurado: 30s.\nReintentos: 1 (solo para errores de red, no para 4xx)."
+  },
+  {
+    "id": "transaccional-bancario",
+    "nombre": "Módulo Transaccional Bancario",
+    "descripcion": "Como usuario del canal digital, necesito realizar [TIPO_TRANSACCION] cumpliendo las validaciones de seguridad y límites establecidos.",
+    "criterios": "CA-01: El sistema debe validar que el monto esté dentro de los límites diarios del usuario.\nCA-02: El sistema debe validar que la cuenta origen tenga saldo suficiente.\nCA-03: El sistema debe solicitar factor de autenticación (OTP/token) para montos superiores a $X.\nCA-04: El sistema debe generar comprobante con número de transacción único.\nCA-05: El sistema debe registrar la transacción en el log de auditoría.\nCA-06: El sistema debe actualizar el saldo en tiempo real después de la transacción.\nCA-07: El sistema debe manejar concurrencia (no permitir doble ejecución).\nCA-08: El sistema debe permitir reversar la transacción dentro de los primeros 5 minutos.",
+    "contexto": "Límite diario: $10,000,000 por defecto (configurable por perfil).\nOTP requerido para montos > $1,000,000.\nConcurrencia: token anti-replay en cada request.\nAuditoría: IP, fecha, usuario, monto, cuenta destino."
+  },
+  {
+    "id": "reportes",
+    "nombre": "Generación de Reportes",
+    "descripcion": "Como usuario con rol [ROL], necesito generar reportes de [TIPO] con filtros personalizables para análisis y toma de decisiones.",
+    "criterios": "CA-01: El sistema debe permitir filtrar por rango de fechas (obligatorio).\nCA-02: El sistema debe permitir filtrar por estado, tipo y usuario (opcionales).\nCA-03: El sistema debe mostrar preview del reporte antes de exportar.\nCA-04: El sistema debe exportar en formato Excel (.xlsx) y PDF.\nCA-05: El sistema debe limitar el rango de fechas a máximo 90 días.\nCA-06: El sistema debe mostrar mensaje cuando no hay datos para los filtros aplicados.\nCA-07: El sistema debe paginar resultados (50 registros por página).",
+    "contexto": "Rango máximo: 90 días.\nExport Excel: máximo 10,000 registros.\nExport PDF: máximo 500 registros (con paginación interna).\nFormato fechas: DD/MM/YYYY."
+  },
+  {
+    "id": "permisos-roles",
+    "nombre": "Gestión de Permisos y Roles",
+    "descripcion": "Como administrador, necesito gestionar los roles y permisos de los usuarios para controlar el acceso a las funcionalidades del sistema.",
+    "criterios": "CA-01: El sistema debe mostrar la lista de roles con sus permisos asociados.\nCA-02: El sistema debe permitir crear un nuevo rol con permisos seleccionables.\nCA-03: El sistema debe permitir asignar/desasignar roles a usuarios.\nCA-04: El sistema debe validar que no se pueda eliminar un rol asignado a usuarios activos.\nCA-05: El sistema debe reflejar los cambios de permisos en tiempo real (sin necesidad de re-login).\nCA-06: El sistema debe registrar en auditoría cada cambio de rol/permiso.",
+    "contexto": "Roles jerárquicos: SuperAdmin > Admin > Operador > Consulta.\nPermisos granulares: módulo + acción (ej: usuarios.crear, reportes.exportar).\nAuditoría incluye: quién cambió, qué cambió, fecha/hora."
+  }
+]

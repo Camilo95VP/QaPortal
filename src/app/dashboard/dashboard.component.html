@@ -1,0 +1,92 @@
+<div class="dashboard-wrapper">
+  <header class="dash-header">
+    <h1>Dashboard QA</h1>
+    <p class="dash-subtitle">Resumen de métricas y progreso del equipo</p>
+  </header>
+
+  <div *ngIf="loading" class="dash-loading">Cargando métricas...</div>
+
+  <div *ngIf="!loading">
+    <!-- KPI Cards -->
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-icon">🏃</div>
+        <div class="kpi-value">{{ metrics.totalSprints }}</div>
+        <div class="kpi-label">Sprints</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon">📋</div>
+        <div class="kpi-value">{{ metrics.totalHUs }}</div>
+        <div class="kpi-label">Historias de Usuario</div>
+      </div>
+      <div class="kpi-card kpi-card--primary">
+        <div class="kpi-icon">🤖</div>
+        <div class="kpi-value">{{ metrics.totalCPsAuto }}</div>
+        <div class="kpi-label">CPs Automatizables</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon">✋</div>
+        <div class="kpi-value">{{ metrics.totalCPsManual }}</div>
+        <div class="kpi-label">CPs Manuales</div>
+      </div>
+      <div class="kpi-card kpi-card--accent">
+        <div class="kpi-icon">📊</div>
+        <div class="kpi-value">{{ totalCPs }}</div>
+        <div class="kpi-label">Total Casos de Prueba</div>
+      </div>
+    </div>
+
+    <!-- Ratio Bar -->
+    <div class="ratio-section">
+      <h3>Ratio Automatizable vs Manual</h3>
+      <div class="ratio-bar-container">
+        <div class="ratio-bar">
+          <div class="ratio-bar__auto" [style.width.%]="autoPercentage">
+            {{ autoPercentage }}% Auto
+          </div>
+          <div class="ratio-bar__manual" [style.width.%]="manualPercentage">
+            {{ manualPercentage }}% Manual
+          </div>
+        </div>
+        <p class="ratio-target">Objetivo: >80% automatizable</p>
+      </div>
+    </div>
+
+    <!-- Active Sprints -->
+    <div class="active-sprints-section" *ngIf="getActiveSprints().length > 0">
+      <h3>Sprints Activos</h3>
+      <div class="active-sprints-grid">
+        <div *ngFor="let sprint of getActiveSprints()" class="active-sprint-card" (click)="navigateTo('/sprints')">
+          <div class="active-sprint-card__name">{{ sprint.nombre }}</div>
+          <div class="active-sprint-card__info">
+            <span>{{ sprint.hus.length }} HUs</span>
+            <span *ngIf="sprint.fechaFin">Fin: {{ sprint.fechaFin }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="quick-actions">
+      <h3>Acciones Rápidas</h3>
+      <div class="actions-grid">
+        <button class="action-card" (click)="navigateTo('/test-designer')">
+          <span class="action-icon">⚡</span>
+          <span class="action-label">Nuevo Diseño</span>
+        </button>
+        <button class="action-card" (click)="navigateTo('/bulk-designer')">
+          <span class="action-icon">📦</span>
+          <span class="action-label">Bulk Processing</span>
+        </button>
+        <button class="action-card" (click)="navigateTo('/sprints')">
+          <span class="action-icon">🏃</span>
+          <span class="action-label">Gestionar Sprints</span>
+        </button>
+        <button class="action-card" (click)="navigateTo('/repo-files')">
+          <span class="action-icon">📁</span>
+          <span class="action-label">Ver Artefactos</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

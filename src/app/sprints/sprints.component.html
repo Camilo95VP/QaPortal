@@ -1,0 +1,90 @@
+<div class="sprints-wrapper">
+  <header class="sprints-header">
+    <div>
+      <h1 class="sprints-title">Gestión de Sprints</h1>
+      <p class="sprints-subtitle">Organiza tus historias de usuario por sprint</p>
+    </div>
+    <button class="btn btn--primary" (click)="openCreateModal()">+ Nuevo Sprint</button>
+  </header>
+
+  <!-- Stats -->
+  <div class="sprints-stats">
+    <div class="stat-card">
+      <span class="stat-value">{{ sprints.length }}</span>
+      <span class="stat-label">Total Sprints</span>
+    </div>
+    <div class="stat-card stat-card--active">
+      <span class="stat-value">{{ getActiveCount() }}</span>
+      <span class="stat-label">Activos</span>
+    </div>
+    <div class="stat-card stat-card--closed">
+      <span class="stat-value">{{ getClosedCount() }}</span>
+      <span class="stat-label">Cerrados</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-value">{{ getTotalHUs() }}</span>
+      <span class="stat-label">Total HUs</span>
+    </div>
+  </div>
+
+  <!-- Sprint Cards -->
+  <div class="sprints-grid" *ngIf="!loading">
+    <div *ngFor="let sprint of sprints" class="sprint-card" [class.sprint-card--closed]="sprint.estado === 'cerrado'">
+      <div class="sprint-card__header">
+        <h3 class="sprint-card__title">{{ sprint.nombre }}</h3>
+        <span class="sprint-card__badge" [class.badge--active]="sprint.estado === 'activo'" [class.badge--closed]="sprint.estado === 'cerrado'">
+          {{ sprint.estado }}
+        </span>
+      </div>
+      <div class="sprint-card__body">
+        <div class="sprint-card__dates">
+          <span *ngIf="sprint.fechaInicio">📅 {{ sprint.fechaInicio }}</span>
+          <span *ngIf="sprint.fechaFin"> → {{ sprint.fechaFin }}</span>
+        </div>
+        <div class="sprint-card__hus">
+          <span class="hu-count">{{ sprint.hus.length }} HU(s)</span>
+          <div class="hu-tags" *ngIf="sprint.hus.length > 0">
+            <span *ngFor="let hu of sprint.hus.slice(0, 5)" class="hu-tag">{{ hu }}</span>
+            <span *ngIf="sprint.hus.length > 5" class="hu-tag hu-tag--more">+{{ sprint.hus.length - 5 }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="sprint-card__actions">
+        <button class="btn btn--sm btn--outline" (click)="viewSprint(sprint)">📁 Ver archivos</button>
+        <button *ngIf="sprint.estado === 'activo'" class="btn btn--sm btn--danger" (click)="closeSprint(sprint)">Cerrar</button>
+        <button *ngIf="sprint.estado === 'cerrado'" class="btn btn--sm btn--outline" (click)="reopenSprint(sprint)">Reabrir</button>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="!loading && sprints.length === 0" class="sprints-empty">
+    <p>No hay sprints creados aún. ¡Crea el primero!</p>
+  </div>
+
+  <div *ngIf="loading" class="sprints-loading">Cargando sprints...</div>
+
+  <!-- Create Modal -->
+  <div class="modal-overlay" *ngIf="showCreateModal" (click)="showCreateModal = false">
+    <div class="modal-box" (click)="$event.stopPropagation()">
+      <h3>Nuevo Sprint</h3>
+      <div class="modal-field">
+        <label>Nombre del Sprint *</label>
+        <input type="text" [(ngModel)]="newSprint.nombre" placeholder="Ej: Sprint 14 - Mayo 2025" />
+      </div>
+      <div class="modal-row">
+        <div class="modal-field">
+          <label>Fecha inicio</label>
+          <input type="date" [(ngModel)]="newSprint.fechaInicio" />
+        </div>
+        <div class="modal-field">
+          <label>Fecha fin</label>
+          <input type="date" [(ngModel)]="newSprint.fechaFin" />
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn--outline" (click)="showCreateModal = false">Cancelar</button>
+        <button class="btn btn--primary" (click)="createSprint()" [disabled]="!newSprint.nombre.trim()">Crear Sprint</button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -72,6 +72,21 @@ $radius-sm: 6px;
 .td-form-row {
   margin-bottom: 0;
 
+  &--three-cols {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+    padding: 16px;
+    background: #f8fafc;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+
+    @media (max-width: 600px) {
+      grid-template-columns: 1fr;
+    }
+  }
+
   &--two-cols {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -111,7 +126,8 @@ $radius-sm: 6px;
 
 // ─── Inputs ──────────────────────────────────────────────────────────────────
 .td-input,
-.td-textarea {
+.td-textarea,
+.td-select {
   width: 100%;
   padding: 10px 14px;
   border: 1.5px solid $border;

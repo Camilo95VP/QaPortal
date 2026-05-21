@@ -9,6 +9,33 @@
   <section class="td-form-section">
     <form [formGroup]="form" (ngSubmit)="generatePrompt()" novalidate>
 
+      <!-- Config Row: Sprint + Template + Tipo -->
+      <div class="td-form-row td-form-row--three-cols">
+        <div class="td-field">
+          <label class="td-label">Sprint</label>
+          <select class="td-select" [(ngModel)]="selectedSprint" [ngModelOptions]="{standalone: true}">
+            <option value="">Sin sprint</option>
+            <option *ngFor="let s of sprints" [value]="s.id">{{ s.nombre }}</option>
+          </select>
+        </div>
+        <div class="td-field">
+          <label class="td-label">Cargar template</label>
+          <select class="td-select" [(ngModel)]="selectedTemplate" [ngModelOptions]="{standalone: true}" (change)="applyTemplate(selectedTemplate)">
+            <option value="">Ninguno</option>
+            <option *ngFor="let t of templates" [value]="t.id">{{ t.nombre }}</option>
+          </select>
+        </div>
+        <div class="td-field">
+          <label class="td-label">Tipo de aplicación</label>
+          <select class="td-select" [(ngModel)]="tipoApp" [ngModelOptions]="{standalone: true}">
+            <option>Web</option>
+            <option>API REST</option>
+            <option>Móvil</option>
+            <option>Hybrid</option>
+          </select>
+        </div>
+      </div>
+
       <div class="td-form-row td-form-row--two-cols">
         <!-- Habilitador -->
         <div class="td-field">

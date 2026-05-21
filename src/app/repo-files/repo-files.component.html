@@ -4,6 +4,7 @@
     <h2 class="list-title">Diseños de prueba</h2>
     <div class="actions">
       <button class="btn-refresh" (click)="validateIndex()">Actualizar</button>
+      <button class="btn-export-all" *ngIf="folders.length > 0" (click)="exportarTodoWord()">📦 Export Masivo</button>
       <span class="status-msg" *ngIf="statusMessage">{{ statusMessage }}</span>
     </div>
     <ng-container *ngIf="folders.length > 0; else noFiles">
@@ -40,10 +41,12 @@
       </div>
       <div class="viewer-actions">
         <button type="button" *ngIf="selectedFile && !editing" class="btn-edit" (click)="startEdit()">&#9998; Editar</button>
-        <!-- Botón Generar PDF comentado por petición del equipo -->
-        <!-- <button type="button" *ngIf="selectedFile && !editing" class="btn-pdf" (click)="generatePdf(selectedFolder, selectedFile)">Generar PDF</button> -->
         <button type="button" *ngIf="selectedFile && !editing" class="btn-word" (click)="generateWord(selectedFolder, selectedFile)">Exportar Word</button>
         <button type="button" *ngIf="selectedFile && !editing && selectedFile === 'casos_manuales.md'" class="btn-template" (click)="showPlantillaModal = true">📋 Generar plantilla</button>
+        <button type="button" *ngIf="selectedFolder && !editing" class="btn-traza" (click)="verTrazabilidad()">📊 Trazabilidad</button>
+        <button type="button" *ngIf="selectedFolder && !editing" class="btn-validar" (click)="ejecutarValidacion()">✅ Validar</button>
+        <button type="button" *ngIf="selectedFile && !editing" class="btn-historial" (click)="verHistorial()">📜 Historial</button>
+        <button type="button" *ngIf="selectedFile && !editing" class="btn-snapshot" (click)="crearSnapshotHistorial()">📸 Snapshot</button>
         <button type="button" *ngIf="editing" class="btn-save" (click)="$event.preventDefault(); saveFile()">&#10003; Guardar</button>
         <button type="button" *ngIf="editing" class="btn-cancel" (click)="$event.preventDefault(); cancelEdit()">&#x2715; Cancelar</button>
       </div>
@@ -93,6 +96,90 @@
     <div class="modal-actions">
       <button class="btn-discard" (click)="proceedDelete()">Eliminar</button>
       <button class="btn-cancel" (click)="cancelDelete()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Trazabilidad Panel -->
+<div *ngIf="showTrazabilidad" class="modal-overlay" (click)="cerrarTrazabilidad()">
+  <div class="modal-box modal-box--wide" (click)="$event.stopPropagation()">
+    <div class="modal-header-row">
+      <h3>📊 Matriz de Trazabilidad</h3>
+      <span class="cobertura-badge" [class.cobertura--ok]="coberturaPercent >= 80" [class.cobertura--warn]="coberturaPercent < 80">
+        {{ coberturaPercent }}% cobertura
+      </span>
+    </div>
+    <table class="traza-table" *ngIf="trazabilidadRows.length > 0">
+      <thead>
+        <tr>
+          <th>Criterio</th>
+          <th>CPs Automatizables</th>
+          <th>CPs Manuales</th>
+          <th>Estado</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let row of trazabilidadRows" [class.traza-row--gap]="!row.cubierto">
+          <td><strong>{{ row.ca }}</strong></td>
+          <td>{{ row.cpsAuto.join(', ') || '—' }}</td>
+          <td>{{ row.cpsManual.join(', ') || '—' }}</td>
+          <td>
+            <span *ngIf="row.cubierto" class="traza-ok">✅ Cubierto</span>
+            <span *ngIf="!row.cubierto" class="traza-gap">❌ Sin cobertura</span>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <p *ngIf="trazabilidadRows.length === 0" class="traza-empty">No se encontró información de trazabilidad. Asegúrate de que los archivos incluyan el comentario &lt;!-- TRAZA: ... --&gt;</p>
+    <div class="modal-actions">
+      <button class="btn-cancel" (click)="cerrarTrazabilidad()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Validación Panel -->
+<div *ngIf="showValidacion" class="modal-overlay" (click)="cerrarValidacion()">
+  <div class="modal-box" (click)="$event.stopPropagation()">
+    <h3>✅ Resultados de Validación</h3>
+    <ul class="validation-list">
+      <li *ngFor="let r of validationResults" [class]="'validation-item validation-item--' + r.tipo">
+        <span class="validation-icon">
+          <ng-container [ngSwitch]="r.tipo">
+            <span *ngSwitchCase="'success'">✅</span>
+            <span *ngSwitchCase="'warning'">⚠️</span>
+            <span *ngSwitchCase="'error'">❌</span>
+          </ng-container>
+        </span>
+        <span class="validation-msg">{{ r.mensaje }}</span>
+        <small *ngIf="r.detalle" class="validation-detail">{{ r.detalle }}</small>
+      </li>
+    </ul>
+    <div class="modal-actions">
+      <button class="btn-cancel" (click)="cerrarValidacion()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Historial Panel -->
+<div *ngIf="showHistorial" class="modal-overlay" (click)="cerrarHistorial()">
+  <div class="modal-box modal-box--wide" (click)="$event.stopPropagation()">
+    <h3>📜 Historial de Versiones</h3>
+    <div *ngIf="historialVersiones.length === 0" class="traza-empty">
+      No hay versiones anteriores. Usa "📸 Snapshot" para crear una antes de regenerar.
+    </div>
+    <div *ngIf="historialVersiones.length > 0" class="historial-content">
+      <div class="historial-sidebar">
+        <button *ngFor="let v of historialVersiones" class="historial-version-btn" [class.active]="selectedVersion === v" (click)="cargarVersionHistorial(v)">
+          {{ v }}
+        </button>
+      </div>
+      <div class="historial-viewer">
+        <pre *ngIf="historialContent">{{ historialContent }}</pre>
+        <p *ngIf="!historialContent" class="traza-empty">Selecciona una versión para ver su contenido.</p>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" (click)="cerrarHistorial()">Cerrar</button>
     </div>
   </div>
 </div>

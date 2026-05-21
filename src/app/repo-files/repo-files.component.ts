@@ -2,13 +2,18 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpClientModule } from '@angular/common/http';
+import { ActivatedRoute } from '@angular/router';
 import { generarPlantillaWord } from './plantilla-word.service';
+import { TrazabilidadService } from '../shared/services/trazabilidad.service';
+import { ValidadorService } from '../shared/services/validador.service';
+import { TrazabilidadRow, ValidationResult } from '../shared/models/sprint.model';
 import { Document as DocxDocument, Packer as DocxPacker, Paragraph as DocxParagraph, TextRun as DocxTextRun, Table as DocxTable, TableRow as DocxTableRow, TableCell as DocxTableCell, HeadingLevel as DocxHeadingLevel, ImageRun as DocxImageRun, AlignmentType as DocxAlignmentType, ShadingType as DocxShadingType } from 'docx';
 
 interface HuFolder {
   name: string;
   path: string;
   files: string[];
+  sprintId?: string;
 }
 
 @Component({
@@ -40,10 +45,51 @@ export class RepoFilesComponent implements OnInit {
   showDeleteModal = false;
   deleteTarget: HuFolder | null = null;
 
-  constructor(private http: HttpClient) {}
+  // Sprint filter
+  currentSprintFilter = '';
+
+  // Trazabilidad
+  showTrazabilidad = false;
+  trazabilidadRows: TrazabilidadRow[] = [];
+  coberturaPercent = 0;
+
+  // Validador
+  showValidacion = false;
+  validationResults: ValidationResult[] = [];
+
+  // Historial
+  showHistorial = false;
+  historialVersiones: string[] = [];
+  historialContent = '';
+  selectedVersion = '';
+
+  constructor(
+    private http: HttpClient,
+    private route: ActivatedRoute,
+    private trazabilidadService: TrazabilidadService,
+    private validadorService: ValidadorService
+  ) {}
 
   ngOnInit(): void {
-    this.loadIndex();
+    this.route.queryParams.subscribe(params => {
+      if (params['sprint']) {
+        this.currentSprintFilter = params['sprint'];
+        this.loadSprintFolders(params['sprint']);
+      } else {
+        this.currentSprintFilter = '';
+        this.loadIndex();
+      }
+    });
+  }
+
+  loadSprintFolders(sprintId: string): void {
+    this.http.get<HuFolder[]>(`/api/sprints/${sprintId}/hus`).subscribe({
+      next: (list) => {
+        this.folders = list;
+        this.statusMessage = `Sprint: ${list.length} HU(s)`;
+      },
+      error: () => this.loadIndex()
+    });
   }
 
   /** Genera la plantilla Word corporativa para casos manuales */
@@ -780,5 +826,165 @@ export class RepoFilesComponent implements OnInit {
       .replace(/(<h2 class="cp-title"[^>]*>)\s*(?:<br\s*\/?>(?:\s|\n)*)+/g, '$1')
       .replace(/\s*(<h2 class="cp-title"[^>]*>[\s\S]*?<\/h2>)\s*/g, '$1');
     return finalOut;
+  }
+
+  // ═══════════════════════════════════════════
+  // TRAZABILIDAD
+  // ═══════════════════════════════════════════
+
+  verTrazabilidad(): void {
+    if (!this.selectedFolder) return;
+    const folder = this.selectedFolder;
+    const basePath = this.currentSprintFilter
+      ? `/api/repo-files/content?folder=${this.currentSprintFilter}/${folder.path}`
+      : `/api/repo-files/content?folder=${folder.path}`;
+
+    let autoMd = '';
+    let manualMd = '';
+    let loaded = 0;
+    const check = () => {
+      loaded++;
+      if (loaded >= 2) {
+        this.trazabilidadRows = this.trazabilidadService.generarMatriz(autoMd, manualMd);
+        this.coberturaPercent = this.trazabilidadService.calcularCobertura(this.trazabilidadRows);
+        this.showTrazabilidad = true;
+      }
+    };
+
+    this.http.get(`${basePath}&path=casos_automatizables.md`, { responseType: 'text' }).subscribe({
+      next: (txt) => { autoMd = txt; check(); },
+      error: () => check()
+    });
+    this.http.get(`${basePath}&path=casos_manuales.md`, { responseType: 'text' }).subscribe({
+      next: (txt) => { manualMd = txt; check(); },
+      error: () => check()
+    });
+  }
+
+  cerrarTrazabilidad(): void {
+    this.showTrazabilidad = false;
+  }
+
+  // ═══════════════════════════════════════════
+  // VALIDADOR
+  // ═══════════════════════════════════════════
+
+  ejecutarValidacion(): void {
+    if (!this.selectedFolder) return;
+    const folder = this.selectedFolder;
+    const basePath = this.currentSprintFilter
+      ? `/api/repo-files/content?folder=${this.currentSprintFilter}/${folder.path}`
+      : `/api/repo-files/content?folder=${folder.path}`;
+
+    const files: { [name: string]: string } = {};
+    let loaded = 0;
+    const total = 3;
+    const check = () => {
+      loaded++;
+      if (loaded >= total) {
+        this.validationResults = this.validadorService.validarCompleto(files);
+        this.showValidacion = true;
+      }
+    };
+
+    this.http.get(`${basePath}&path=casos_automatizables.md`, { responseType: 'text' }).subscribe({
+      next: (txt) => { files['casos_automatizables.md'] = txt; check(); },
+      error: () => check()
+    });
+    this.http.get(`${basePath}&path=casos_manuales.md`, { responseType: 'text' }).subscribe({
+      next: (txt) => { files['casos_manuales.md'] = txt; check(); },
+      error: () => check()
+    });
+    this.http.get(`${basePath}&path=automation_v1.spec.ts`, { responseType: 'text' }).subscribe({
+      next: (txt) => { files['automation_v1.spec.ts'] = txt; check(); },
+      error: () => check()
+    });
+  }
+
+  cerrarValidacion(): void {
+    this.showValidacion = false;
+  }
+
+  // ═══════════════════════════════════════════
+  // HISTORIAL
+  // ═══════════════════════════════════════════
+
+  verHistorial(): void {
+    if (!this.selectedFolder) return;
+    const folder = this.selectedFolder.path;
+    const sprint = this.currentSprintFilter;
+    let url = `/api/repo-files/history?folder=${encodeURIComponent(folder)}`;
+    if (sprint) url += `&sprint=${encodeURIComponent(sprint)}`;
+
+    this.http.get<string[]>(url).subscribe({
+      next: (versions) => {
+        this.historialVersiones = versions;
+        this.showHistorial = true;
+        this.historialContent = '';
+        this.selectedVersion = '';
+      },
+      error: () => {
+        this.historialVersiones = [];
+        this.showHistorial = true;
+      }
+    });
+  }
+
+  cargarVersionHistorial(version: string): void {
+    if (!this.selectedFolder || !this.selectedFile) return;
+    const folder = this.selectedFolder.path;
+    const sprint = this.currentSprintFilter;
+    let url = `/api/repo-files/history/content?folder=${encodeURIComponent(folder)}&version=${encodeURIComponent(version)}&file=${encodeURIComponent(this.selectedFile)}`;
+    if (sprint) url += `&sprint=${encodeURIComponent(sprint)}`;
+
+    this.selectedVersion = version;
+    this.http.get(url, { responseType: 'text' }).subscribe({
+      next: (txt) => { this.historialContent = txt; },
+      error: () => { this.historialContent = '(archivo no encontrado en esta versión)'; }
+    });
+  }
+
+  cerrarHistorial(): void {
+    this.showHistorial = false;
+  }
+
+  crearSnapshotHistorial(): void {
+    if (!this.selectedFolder) return;
+    const folder = this.selectedFolder.path;
+    const sprint = this.currentSprintFilter;
+    let url = `/api/repo-files/history?folder=${encodeURIComponent(folder)}`;
+    if (sprint) url += `&sprint=${encodeURIComponent(sprint)}`;
+
+    this.http.post<any>(url, {}).subscribe({
+      next: (res) => {
+        this.statusMessage = `Snapshot creado: ${res.version}`;
+        setTimeout(() => this.statusMessage = '', 3000);
+      },
+      error: () => { this.statusMessage = 'Error creando snapshot'; }
+    });
+  }
+
+  // ═══════════════════════════════════════════
+  // EXPORT MASIVO
+  // ═══════════════════════════════════════════
+
+  async exportarTodoWord(): Promise<void> {
+    if (this.folders.length === 0) return;
+    this.statusMessage = 'Exportando todas las HUs a Word...';
+
+    for (const folder of this.folders) {
+      const basePath = this.currentSprintFilter
+        ? `/api/repo-files/content?folder=${this.currentSprintFilter}/${folder.path}`
+        : `/api/repo-files/content?folder=${folder.path}`;
+
+      try {
+        const md = await this.http.get(`${basePath}&path=casos_manuales.md`, { responseType: 'text' }).toPromise();
+        if (md) {
+          await generarPlantillaWord(md, 'QA Team', folder.name);
+        }
+      } catch {}
+    }
+    this.statusMessage = 'Exportación masiva completada.';
+    setTimeout(() => this.statusMessage = '', 3000);
   }
 }
