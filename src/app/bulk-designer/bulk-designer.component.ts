@@ -106,9 +106,9 @@ Genera los artefactos con los permisos del usuario y crea:
 * casos_automatizables.md  (Gherkin español — Happy Path / Full Error / Casos Borde)
 * casos_manuales.md        (solo casos no automatizables)
 * automation_v1.spec.ts    (Playwright + TypeScript, pasos Gherkin como comentarios)
-* Incluye trazabilidad: <!-- TRAZA: CA-XX=CP-AXX,CP-MXX --> al final de cada .md
-* Incluye testData en cada test del spec.ts con datos válidos/inválidos/borde
-* Guarda en: qa-portal/src/assets/repo-files/${this.selectedSprint ? this.selectedSprint + '/' : ''}${item.nombreHU.trim()}/`;
+* Nomenclatura de casos: automatizables → CP-001, CP-002, CP-003... | manuales → CP-M01, CP-M02, CP-M03...
+* La carpeta YA EXISTE en qa-portal/src/assets/repo-files/${this.selectedSprint ? this.selectedSprint + '/' : ''}${item.nombreHU.trim()}/ — escribe los artefactos directamente ahí, NO crear carpeta nueva.
+* Incluye testData en cada test del spec.ts con datos válidos/inválidos/borde`;;;
   }
 
   async copyPrompt(index: number): Promise<void> {
@@ -176,10 +176,15 @@ Genera los artefactos con los permisos del usuario y crea:
     if (!sprintId) { alert('Selecciona un sprint para asociar la HU.'); return; }
     if (!item.nombreHU || !item.nombreHU.trim()) { alert('Nombre HU requerido'); return; }
 
-    this.sprintService.addHuToSprint(sprintId, item.nombreHU.trim()).subscribe({
+    // Extraer habilitador del nombre (parte antes del primer ' - ')
+    const habilitador = item.nombreHU.trim().split(' - ')[0]?.trim() || '';
+
+    this.sprintService.addHuToSprint(sprintId, item.nombreHU.trim(), {
+      habilitador,
+      descripcion: item.descripcion?.trim() || '',
+      criterios:   item.criterios?.trim()   || ''
+    }).subscribe({
       next: () => {
-        // Solo registra la HU en sprints.json.
-        // Los artefactos (metadata.json, casos_*.md, spec.ts) son creados exclusivamente por el agente QA.
         item.estado = 'completada';
         item.sprintId = sprintId;
         this.sprintService.getSprints().subscribe();

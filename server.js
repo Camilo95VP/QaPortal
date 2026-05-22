@@ -350,9 +350,14 @@ app.post('/api/sprints/:id/hus', async (req, res) => {
     if (!sprints[idx].hus.includes(huName)) {
       sprints[idx].hus.push(huName);
     }
+    // Save metadata (habilitador, descripcion, criterios) alongside the HU name
+    if (!sprints[idx].husInfo) sprints[idx].husInfo = {};
+    sprints[idx].husInfo[huName] = {
+      habilitador: body.habilitador || '',
+      descripcion: body.descripcion || '',
+      criterios:   body.criterios   || ''
+    };
     await writeSprints(sprints);
-    // Nota: la carpeta y artefactos en repo-files son responsabilidad exclusiva del agente QA.
-    // Aquí solo se persiste el registro en sprints.json.
     res.json(sprints[idx]);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -365,9 +370,11 @@ app.delete('/api/sprints/:id/hus/:huName', async (req, res) => {
     const sprints = await readSprints();
     const idx = sprints.findIndex(s => s.id === req.params.id);
     if (idx === -1) return res.status(404).json({ error: 'sprint not found' });
-    // Decode and normalize to safely match regardless of URL encoding or case differences
     const huToRemove = decodeURIComponent(req.params.huName).trim();
     sprints[idx].hus = sprints[idx].hus.filter(h => decodeURIComponent(h).trim() !== huToRemove);
+    if (sprints[idx].husInfo && sprints[idx].husInfo[huToRemove]) {
+      delete sprints[idx].husInfo[huToRemove];
+    }
     await writeSprints(sprints);
     res.json(sprints[idx]);
   } catch (err) {
@@ -376,24 +383,64 @@ app.delete('/api/sprints/:id/hus/:huName', async (req, res) => {
 });
 
 // Get HU folders for a sprint
+// Merges HUs registered in sprints.json with physical folders.
+// Creates the physical folder for each registered HU if it doesn't exist yet
+// (so the agent can write artifacts into it later).
 app.get('/api/sprints/:id/hus', async (req, res) => {
   try {
-    const sprintDir = path.join(__dirname, 'src', 'assets', 'repo-files', req.params.id);
-    if (!fsSync.existsSync(sprintDir)) return res.json([]);
+    const INDEX_DIR = path.join(__dirname, 'src', 'assets', 'repo-files');
+    const sprintDir = path.join(INDEX_DIR, req.params.id);
     const ALLOWED_EXT = ['.md', '.ts', '.txt', '.json'];
-    const entries = await fs.readdir(sprintDir, { withFileTypes: true });
+
+    // 1. Get registered HU names from sprints.json
+    const sprints = await readSprints();
+    const sprint = sprints.find(s => s.id === req.params.id);
+    const registeredHus = (sprint && sprint.hus) ? sprint.hus : [];
+    const husInfo = (sprint && sprint.husInfo) ? sprint.husInfo : {};
+
+    // 2. Ensure sprint directory exists
+    if (!fsSync.existsSync(sprintDir)) fsSync.mkdirSync(sprintDir, { recursive: true });
+
+    // 3. For each registered HU: ensure folder exists, list files, attach metadata
+    const seen = new Set();
     const result = [];
-    for (const entry of entries) {
-      if (!entry.isDirectory()) continue;
-      const folderPath = path.join(sprintDir, entry.name);
+
+    for (const huName of registeredHus) {
+      const huDir = path.join(sprintDir, huName);
+      if (!fsSync.existsSync(huDir)) fsSync.mkdirSync(huDir, { recursive: true });
       let files = [];
       try {
-        const sub = await fs.readdir(folderPath, { withFileTypes: true });
+        const sub = await fs.readdir(huDir, { withFileTypes: true });
         files = sub.filter(s => s.isFile()).map(s => s.name)
           .filter(n => ALLOWED_EXT.includes(path.extname(n).toLowerCase()));
       } catch (e) { files = []; }
-      result.push({ name: entry.name, path: entry.name, files, sprintId: req.params.id });
+      const info = husInfo[huName] || {};
+      result.push({
+        name: huName, path: huName, files, sprintId: req.params.id,
+        habilitador: info.habilitador || '',
+        descripcion: info.descripcion || '',
+        criterios:   info.criterios   || ''
+      });
+      seen.add(huName);
     }
+
+    // 4. Also pick up any physical folders NOT in sprints.json (e.g. created directly by agent)
+    try {
+      const entries = await fs.readdir(sprintDir, { withFileTypes: true });
+      for (const entry of entries) {
+        if (!entry.isDirectory() || seen.has(entry.name)) continue;
+        const huDir = path.join(sprintDir, entry.name);
+        let files = [];
+        try {
+          const sub = await fs.readdir(huDir, { withFileTypes: true });
+          files = sub.filter(s => s.isFile()).map(s => s.name)
+            .filter(n => ALLOWED_EXT.includes(path.extname(n).toLowerCase()));
+        } catch (e) { files = []; }
+        result.push({ name: entry.name, path: entry.name, files, sprintId: req.params.id,
+          habilitador: '', descripcion: '', criterios: '' });
+      }
+    } catch (e) { /* ignore */ }
+
     res.json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });

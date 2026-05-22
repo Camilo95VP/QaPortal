@@ -74,6 +74,10 @@
         <div class="meta-row"><strong>Descripción:</strong>
           <p class="desc">{{ selectedHu.descripcion || 'Sin descripción disponible.' }}</p>
         </div>
+        <div class="meta-row" *ngIf="selectedHu.criterios">
+          <strong>Criterios de aceptación:</strong>
+          <p class="desc" style="white-space:pre-wrap">{{ selectedHu.criterios }}</p>
+        </div>
         <div class="meta-row"><strong>Archivos:</strong> {{ selectedHu.files?.length || 0 }}</div>
         <div style="margin-top:10px">
           <button class="btn primary" (click)="goToAgregarHu(selectedHu.name)">➕ Agregar HU/EN</button>

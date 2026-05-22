@@ -75,27 +75,15 @@ export class SprintDetailComponent implements OnInit {
   }
 
   selectHu(h: any): void {
-    this.selectedHu = { name: h.name, files: h.files || [], descripcion: '', habilitador: '' };
-    const folder = `${this.sprintId}/${h.name}`;
-    const urlMeta = `/api/repo-files/content?folder=${encodeURIComponent(folder)}&path=metadata.json`;
-
-    fetch(urlMeta).then(r => {
-      if (!r.ok) throw new Error('no meta');
-      return r.json();
-    }).then((json:any) => {
-      this.selectedHu.descripcion = json.descripcion || json.description || '';
-      this.selectedHu.habilitador = json.habilitador || json.enabler || '';
-    }).catch(() => {
-      // fallback: try casos_automatizables.md and extract first paragraph
-      const urlAuto = `/api/repo-files/content?folder=${encodeURIComponent(folder)}&path=casos_automatizables.md`;
-      fetch(urlAuto).then(r => r.ok ? r.text() : '').then(txt => {
-        if (!txt) return;
-        const first = txt.split('\n\n')[0] || '';
-        this.selectedHu.descripcion = first.replace(/\r?\n/g, ' ').trim();
-        const match = txt.match(/Habilitador:\s*(.+)/i) || txt.match(/Enabler:\s*(.+)/i);
-        if (match) this.selectedHu.habilitador = match[1].trim();
-      }).catch(() => {});
-    });
+    // Los datos de habilitador/descripcion/criterios vienen directamente del GET /api/sprints/:id/hus
+    // que los lee de husInfo en sprints.json — no necesita fetch a archivos
+    this.selectedHu = {
+      name:        h.name,
+      files:       h.files       || [],
+      habilitador: h.habilitador || '',
+      descripcion: h.descripcion || '',
+      criterios:   h.criterios   || ''
+    };
   }
 
   goToNuevoDiseno(hu?: string): void {

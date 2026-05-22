@@ -198,9 +198,9 @@ Genera los artefactos con los permisos del usuario y crea:
 * casos_automatizables.md  (Gherkin español — Happy Path / Full Error / Casos Borde)
 * casos_manuales.md        (solo casos no automatizables)
 * automation_v1.spec.ts    (Playwright + TypeScript, pasos Gherkin como comentarios)
-* Incluye trazabilidad al final de cada .md: <!-- TRAZA: CA-XX=CP-AXX,CP-MXX | CA-YY=CP-AYY -->
+* Nomenclatura de casos: automatizables → CP-001, CP-002, CP-003... | manuales → CP-M01, CP-M02, CP-M03...
+* La carpeta YA EXISTE en ${outputPath} — escribe los artefactos directamente ahí, NO crear carpeta nueva.
 * En cada test del spec.ts incluye un objeto testData con datos válidos, inválidos y borde.
-* Guarda en: ${outputPath}
 * Trabaja con el agente de forma @qa-test-designer.agent.md para que el prompt se mantenga actualizado.`;
 
     // If sprint selected, register HU in sprint
