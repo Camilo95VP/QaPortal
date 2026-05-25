@@ -40,3 +40,8 @@ testem.log
 # System files
 .DS_Store
 Thumbs.db
+
+# Ignore generated repo-files and sprint indexes
+/src/assets/repo-files/
+/src/assets/repo-files/repo-files.json
+/src/assets/repo-files/sprints.json
