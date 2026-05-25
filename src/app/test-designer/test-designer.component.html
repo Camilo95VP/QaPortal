@@ -9,8 +9,8 @@
   <section class="td-form-section">
     <form [formGroup]="form" (ngSubmit)="generatePrompt()" novalidate>
 
-      <!-- Config Row: Sprint + Template + Tipo -->
-      <div class="td-form-row td-form-row--three-cols">
+      <!-- Config Row: Sprint + Template + Tipo + Enfoque -->
+      <div class="td-form-row td-form-row--four-cols">
         <div class="td-field">
           <label class="td-label">Sprint</label>
           <select class="td-select" [(ngModel)]="selectedSprint" (ngModelChange)="onSprintChange($event)" [ngModelOptions]="{standalone: true}">
@@ -32,6 +32,14 @@
             <option>API REST</option>
             <option>Móvil</option>
             <option>Hybrid</option>
+          </select>
+        </div>
+        <div class="td-field">
+          <label class="td-label">Enfoque de diseño</label>
+          <select class="td-select" [(ngModel)]="enfoqueDiseno" [ngModelOptions]="{standalone: true}">
+            <option value="ambos">Ambos (prioriza automatizados)</option>
+            <option value="automatizados">Solo automatizados</option>
+            <option value="manuales">Solo manuales</option>
           </select>
         </div>
       </div>

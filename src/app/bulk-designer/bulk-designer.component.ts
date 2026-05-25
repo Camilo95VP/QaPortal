@@ -22,6 +22,7 @@ export class BulkDesignerComponent implements OnInit {
   generatedPrompts: string[] = [];
   showResults = false;
   copiedIndex = -1;
+  enfoqueDiseno: 'automatizados' | 'manuales' | 'ambos' = 'ambos';
 
   constructor(private http: HttpClient, private sprintService: SprintService, private route: ActivatedRoute, private toast: ToastService) {}
 
@@ -98,18 +99,55 @@ ${tipoLine}
 ${item.criterios.trim().split('\n').map(l => `  ${l.trim()}`).join('\n')}
 ${consideraciones}
 ## 🎯 ENFOQUE ESPECÍFICO
-* Prioriza casos automatizables: lógica, validaciones, reglas de negocio, integraciones, mensajes de error.
-* Casos manuales solo para: UI visual subjetiva, responsive en dispositivos reales, exploratorio.
-* No repetir casos entre archivos; cada caso debe ser único.
+${this.getEnfoqueTexto()}
 
 ## 🚀 EJECUCIÓN
 Genera los artefactos con los permisos del usuario y crea:
-* casos_automatizables.md  (Gherkin español — Happy Path / Full Error / Casos Borde)
-* casos_manuales.md        (solo casos no automatizables)
-* automation_v1.spec.ts    (Playwright + TypeScript, pasos Gherkin como comentarios)
+${this.getArtefactosTexto()}
 * Nomenclatura de casos: automatizables → CP-001, CP-002, CP-003... | manuales → CP-M01, CP-M02, CP-M03...
 * La carpeta YA EXISTE en qa-portal/src/assets/repo-files/${this.selectedSprint ? this.selectedSprint + '/' : ''}${item.nombreHU.trim()}/ — escribe los artefactos directamente ahí, NO crear carpeta nueva.
 * Incluye testData en cada test del spec.ts con datos válidos/inválidos/borde`;;;
+  }
+
+  private getEnfoqueTexto(): string {
+    switch (this.enfoqueDiseno) {
+      case 'automatizados':
+        return `* MODO: Solo casos automatizables.
+* Genera ÚNICAMENTE casos_automatizables.md y automation_v1.spec.ts.
+* NO generar casos_manuales.md.
+* Prioriza: lógica, validaciones, reglas de negocio, integraciones, mensajes de error, flujos happy path, full error y borde.
+* No repetir casos entre archivos; cada caso debe ser único.`;
+      case 'manuales':
+        return `* MODO: Solo casos manuales.
+* Genera ÚNICAMENTE casos_manuales.md.
+* NO generar casos_automatizables.md ni automation_v1.spec.ts.
+* Incluye: UI visual, responsive, exploratorio, flujos complejos multi-pantalla, validaciones subjetivas, UX.
+* También incluye flujos funcionales que requieran revisión humana.
+* No repetir casos; cada caso debe ser único.`;
+      case 'ambos':
+      default:
+        return `* MODO: Ambos — priorizando automatizados.
+* Prioriza casos automatizables: lógica, validaciones, reglas de negocio, integraciones, mensajes de error.
+* Casos manuales solo para: UI visual subjetiva, responsive en dispositivos reales, exploratorio.
+* Genera: casos_automatizables.md, casos_manuales.md y automation_v1.spec.ts.
+* El mayor volumen de casos debe ser automatizable; manuales solo lo estrictamente necesario.
+* No repetir casos entre archivos; cada caso debe ser único.`;
+    }
+  }
+
+  private getArtefactosTexto(): string {
+    switch (this.enfoqueDiseno) {
+      case 'automatizados':
+        return `* casos_automatizables.md  (Gherkin español — Happy Path / Full Error / Casos Borde)
+* automation_v1.spec.ts    (Playwright + TypeScript, pasos Gherkin como comentarios)`;
+      case 'manuales':
+        return `* casos_manuales.md        (Gherkin español — casos que requieren revisión humana)`;
+      case 'ambos':
+      default:
+        return `* casos_automatizables.md  (Gherkin español — Happy Path / Full Error / Casos Borde)
+* casos_manuales.md        (solo casos no automatizables)
+* automation_v1.spec.ts    (Playwright + TypeScript, pasos Gherkin como comentarios)`;
+    }
   }
 
   async copyPrompt(index: number): Promise<void> {

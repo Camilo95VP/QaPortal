@@ -1,2 +1,19 @@
 [
+  {
+    "id": "sprint-1779718015834",
+    "nombre": "Sprint 19",
+    "fechaInicio": "2026-05-25",
+    "fechaFin": "2026-06-02",
+    "estado": "activo",
+    "hus": [
+      "EN31296 - API para la creación/edición/eliminación de cuentas de los bancos participantes - Portal Kuara (interna)"
+    ],
+    "husInfo": {
+      "EN31296 - API para la creación/edición/eliminación de cuentas de los bancos participantes - Portal Kuara (interna)": {
+        "habilitador": "",
+        "descripcion": "Se requiere crear un API que me permita realizar la creación, edición y eliminación de cuentas de los comercios de cada banco participante",
+        "criterios": "Creación de request y response (referencia swagger) dentro de un nuevo microservicio API change account\nCreación de end-point\nEste consumo se debe aplicar desde el repositorio bt-P2M-back-port (debe ser atómico) \nGenerar la relación de la cuenta y alias \nActualización de la relación de la cuenta y alias\nAuditoria de los cambios\nCreación de tablas en el modelo de relación (validar en la estrategia técnica)\nManejo de errores hacia el front\nSi ocurre un error se debe mantener la persistencia de datos\nRealizar el consumo del API builder \nManejo de time-out (por variable de entorno 15 segundos)\nPruebas de latencia \nMapear mensaje de error al front, mensaje genérico \"Error al guardar la información\" \nSe debe generar el guardado del alias (tanto en la creación como en la edición)\nEscenario de eliminación:\nCuando se dé la eliminación de un alias (relación alias-cuenta) se debe actualizar desde el repositorio bt-P2M-back-port\nValidar que no se pueda eliminar un alias si es único que queda asociado al comercio del banco participante"
+      }
+    }
+  }
 ]

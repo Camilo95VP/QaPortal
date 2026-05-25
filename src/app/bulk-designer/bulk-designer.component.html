@@ -12,13 +12,21 @@
     </div>
   </header>
 
-  <!-- Sprint Selector -->
+  <!-- Sprint & Enfoque Selector -->
   <div class="bulk-config">
     <div class="config-field">
       <label>Sprint</label>
       <select [(ngModel)]="selectedSprint">
         <option value="">Sin sprint (legacy)</option>
         <option *ngFor="let s of sprints" [value]="s.id">{{ s.nombre }}</option>
+      </select>
+    </div>
+    <div class="config-field">
+      <label>Enfoque de diseño</label>
+      <select [(ngModel)]="enfoqueDiseno">
+        <option value="ambos">Ambos (prioriza automatizados)</option>
+        <option value="automatizados">Solo automatizados</option>
+        <option value="manuales">Solo manuales</option>
       </select>
     </div>
   </div>
