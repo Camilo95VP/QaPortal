@@ -1,0 +1,10 @@
+<div class="confirm-overlay" *ngIf="visible">
+  <div class="confirm-box card">
+    <div class="confirm-header">Confirmación</div>
+    <div class="confirm-body">{{ message }}</div>
+    <div class="confirm-actions">
+      <button class="btn outline" (click)="cancel()">Cancelar</button>
+      <button class="btn primary" (click)="accept()">Aceptar</button>
+    </div>
+  </div>
+</div>

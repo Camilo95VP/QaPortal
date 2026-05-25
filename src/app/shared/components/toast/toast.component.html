@@ -1,0 +1,9 @@
+<div class="toast-wrap" aria-live="polite" aria-atomic="true">
+  <div class="toast" *ngFor="let t of toastService.toasts$ | async; trackBy: trackById" [ngClass]="t.type">
+    <div class="toast-content">
+      <div class="icon">{{ t.type === 'success' ? '✅' : (t.type === 'error' ? '⚠️' : (t.type === 'warning' ? '⚠️' : 'ℹ️')) }}</div>
+      <div class="message">{{ t.message }}</div>
+    </div>
+    <button class="close" (click)="toastService.dismiss(t.id)">✕</button>
+  </div>
+</div>

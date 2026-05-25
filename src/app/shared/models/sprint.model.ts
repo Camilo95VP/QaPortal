@@ -5,7 +5,7 @@ export interface Sprint {
   fechaFin: string;
   estado: 'activo' | 'cerrado';
   hus: string[];
-  husInfo?: { [nombre: string]: { habilitador?: string; descripcion?: string; criterios?: string } };
+  husInfo?: { [nombre: string]: { descripcion?: string; criterios?: string } };
 }
 
 export interface HuFolder {
@@ -13,7 +13,6 @@ export interface HuFolder {
   path: string;
   files: string[];
   sprintId?: string;
-  habilitador?: string;
   descripcion?: string;
   criterios?: string;
 }

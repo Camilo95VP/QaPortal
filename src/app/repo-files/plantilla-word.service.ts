@@ -200,7 +200,8 @@ export async function generarPlantillaWord(
 ): Promise<void> {
   const { hu, casos } = parseCasosManuales(md);
   if (casos.length === 0) {
-    alert('No se encontraron casos manuales con formato CP-MXX en el archivo.');
+    // Emit a global toast event so non-Angular helpers can show notifications
+    try { window.dispatchEvent(new CustomEvent('app:toast', { detail: { type: 'warning', message: 'No se encontraron casos manuales con formato CP-MXX en el archivo.' } })); } catch(e) {}
     return;
   }
 

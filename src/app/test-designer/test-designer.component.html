@@ -37,25 +37,10 @@
       </div>
 
       <div class="td-form-row td-form-row--two-cols">
-        <!-- Habilitador -->
-        <div class="td-field">
-          <label class="td-label" for="habilitador">
-            Habilitador <span class="td-optional">(opcional)</span>
-          </label>
-          <input
-            id="habilitador"
-            class="td-input"
-            [class.td-input--error]="isInvalid('habilitador')"
-            formControlName="habilitador"
-            placeholder="Ej: EN29655"
-            autocomplete="off"
-          />
-        </div>
-
         <!-- Nombre HU -->
         <div class="td-field">
           <label class="td-label" for="nombreHU">
-            Nombre de la HU <span class="td-optional">(opcional)</span>
+            Nombre de la HU <span class="td-required">*</span>
           </label>
           <input
             id="nombreHU"
@@ -65,10 +50,9 @@
             placeholder="Ej: HU30628 - Crear Usuarios Comercio"
             autocomplete="off"
           />
+          <div *ngIf="isInvalid('nombreHU')" class="td-error-msg">Campo requerido</div>
         </div>
       </div>
-
-      <div *ngIf="isEitherInvalid()" class="td-error-msg">Se requiere al menos Habilitador o Nombre de la HU</div>
 
       <!-- Descripción -->
       <div class="td-field">
@@ -119,6 +103,9 @@
       <div class="td-actions">
         <button type="submit" class="td-btn td-btn--primary">
           ⚡ Generar Prompt
+        </button>
+        <button type="button" class="td-btn td-btn--secondary" (click)="saveMetadata()" [disabled]="!selectedSprint || form.invalid">
+          💾 Guardar HU
         </button>
       </div>
 

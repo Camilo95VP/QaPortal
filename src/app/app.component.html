@@ -13,6 +13,10 @@
       <span class="nav-icon" aria-hidden>📊</span>
       <span class="nav-label">Dashboard</span>
     </a>
+    <a routerLink="/sprints" routerLinkActive="nav-btn--active" class="nav-btn" aria-label="Gestionar sprints">
+      <span class="nav-icon" aria-hidden>🏃</span>
+      <span class="nav-label">Gestionar Sprints</span>
+    </a>
   </nav>
 </header>
 
@@ -24,4 +28,6 @@
     <span>Volver</span>
   </button>
   <router-outlet></router-outlet>
+  <app-toast></app-toast>
+  <app-confirm></app-confirm>
 </main>

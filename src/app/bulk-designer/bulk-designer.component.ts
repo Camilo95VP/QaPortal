@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpClientModule } from '@angular/common/http';
 import { SprintService } from '../shared/services/sprint.service';
+import { ToastService } from '../shared/services/toast.service';
 import { Sprint, BulkItem, HuTemplate } from '../shared/models/sprint.model';
 import { ActivatedRoute } from '@angular/router';
 
@@ -22,7 +23,7 @@ export class BulkDesignerComponent implements OnInit {
   showResults = false;
   copiedIndex = -1;
 
-  constructor(private http: HttpClient, private sprintService: SprintService, private route: ActivatedRoute) {}
+  constructor(private http: HttpClient, private sprintService: SprintService, private route: ActivatedRoute, private toast: ToastService) {}
 
   ngOnInit(): void {
     this.sprintService.getSprints().subscribe(s => this.sprints = s);
@@ -173,14 +174,10 @@ Genera los artefactos con los permisos del usuario y crea:
   createHU(index: number): void {
     const item = this.items[index];
     const sprintId = (item.sprintId && item.sprintId.trim()) ? item.sprintId : this.selectedSprint;
-    if (!sprintId) { alert('Selecciona un sprint para asociar la HU.'); return; }
-    if (!item.nombreHU || !item.nombreHU.trim()) { alert('Nombre HU requerido'); return; }
-
-    // Extraer habilitador del nombre (parte antes del primer ' - ')
-    const habilitador = item.nombreHU.trim().split(' - ')[0]?.trim() || '';
+    if (!sprintId) { this.toast.show('warning', 'Selecciona un sprint para asociar la HU.'); return; }
+    if (!item.nombreHU || !item.nombreHU.trim()) { this.toast.show('warning', 'Nombre HU requerido'); return; }
 
     this.sprintService.addHuToSprint(sprintId, item.nombreHU.trim(), {
-      habilitador,
       descripcion: item.descripcion?.trim() || '',
       criterios:   item.criterios?.trim()   || ''
     }).subscribe({
@@ -189,7 +186,7 @@ Genera los artefactos con los permisos del usuario y crea:
         item.sprintId = sprintId;
         this.sprintService.getSprints().subscribe();
       },
-      error: () => { alert('Error asociando HU al sprint en el servidor.'); }
+      error: () => { this.toast.show('error', 'Error asociando HU al sprint en el servidor.'); }
     });
   }
 

@@ -10,7 +10,6 @@
 
     <div class="sd-actions">
       <button class="btn primary" (click)="goToAgregarHu()">➕ Agregar HU/EN</button>
-      <button class="btn outline" (click)="goToArtefactos()">📁 Ver artefactos</button>
     </div>
   </div>
 
@@ -45,17 +44,12 @@
             <tr>
               <th>HU</th>
               <th class="hide-sm">Artefactos</th>
-              <th class="actions-col">Acciones</th>
             </tr>
           </thead>
           <tbody>
             <tr *ngFor="let h of hus" (click)="selectHu(h)" [class.selected]="selectedHu?.name === h.name">
               <td class="hu-name">{{ h.name }}</td>
-              <td class="hide-sm">{{ h.files?.length || 0 }}</td>
-              <td class="actions-col">
-                <button class="btn sm" (click)="goToAgregarHu(h.name); $event.stopPropagation()">➕ Agregar HU/EN</button>
-                <button class="btn sm outline" (click)="goToArtefactos(h.name); $event.stopPropagation()">📁 Artefactos</button>
-              </td>
+              <td class="hide-sm">{{ h.files.length || 0 }}</td>
             </tr>
           </tbody>
         </table>
@@ -70,18 +64,24 @@
 
       <div class="card hu-detail" *ngIf="selectedHu">
         <h4>{{ selectedHu.name }}</h4>
-        <div class="meta-row"><strong>Habilitador:</strong> {{ selectedHu.habilitador || '—' }}</div>
         <div class="meta-row"><strong>Descripción:</strong>
-          <p class="desc">{{ selectedHu.descripcion || 'Sin descripción disponible.' }}</p>
+          <div *ngIf="!editMode"><p class="desc">{{ selectedHu.descripcion || 'Sin descripción disponible.' }}</p></div>
+          <div *ngIf="editMode"><textarea class="desc-edit" [(ngModel)]="editDescripcion" rows="3"></textarea></div>
         </div>
-        <div class="meta-row" *ngIf="selectedHu.criterios">
+        <div class="meta-row">
           <strong>Criterios de aceptación:</strong>
-          <p class="desc" style="white-space:pre-wrap">{{ selectedHu.criterios }}</p>
+          <div *ngIf="!editMode && selectedHu.criterios"><p class="desc" style="white-space:pre-wrap">{{ selectedHu.criterios }}</p></div>
+          <div *ngIf="!editMode && !selectedHu.criterios"><p class="desc">Sin criterios disponibles.</p></div>
+          <div *ngIf="editMode"><textarea class="desc-edit" [(ngModel)]="editCriterios" rows="5"></textarea></div>
         </div>
-        <div class="meta-row"><strong>Archivos:</strong> {{ selectedHu.files?.length || 0 }}</div>
-        <div style="margin-top:10px">
-          <button class="btn primary" (click)="goToAgregarHu(selectedHu.name)">➕ Agregar HU/EN</button>
+        <div class="meta-row"><strong>Archivos:</strong> {{ selectedHu.files.length || 0 }}</div>
+        <div style="margin-top:10px; display:flex; gap:10px; align-items:center">
+          <button class="btn rocket" (click)="goToNuevoDiseno(selectedHu.name)">🚀 Diseñar casos de prueba</button>
+          <button *ngIf="!editMode" class="btn secondary" (click)="startEditHu()">✏️ Editar HU</button>
+          <button *ngIf="editMode" class="btn success" (click)="saveEditedHu()">💾 Guardar</button>
+          <button *ngIf="editMode" class="btn outline" (click)="cancelEditHu()">✖️ Cancelar</button>
           <button class="btn outline" (click)="goToArtefactos(selectedHu.name)">📁 Ver artefactos</button>
+          <button class="btn danger" (click)="removeHu(selectedHu.name)">🗑️ Eliminar HU</button>
         </div>
       </div>
     </main>

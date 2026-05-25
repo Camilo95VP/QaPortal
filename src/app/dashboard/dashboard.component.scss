@@ -80,23 +80,51 @@
 }
 
 .active-sprints-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: flex-start;
 }
 
+/* Each sprint as an independent card */
 .active-sprint-card {
-  background: #f0fdf4;
-  border: 1px solid #bbf7d0;
-  border-radius: 10px;
-  padding: 16px;
+  background: linear-gradient(180deg, #ffffff 0%, #fbfffb 100%);
+  border: 1px solid rgba(34,197,94,0.12);
+  box-shadow: 0 6px 18px rgba(16,185,129,0.06);
+  border-radius: 12px;
+  padding: 14px 16px;
   cursor: pointer;
-  transition: all 0.2s;
-  &:hover { background: #dcfce7; transform: translateY(-1px); }
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  width: calc(50% - 8px);
+  min-width: 260px;
+  box-sizing: border-box;
+  &:hover { transform: translateY(-4px); box-shadow: 0 12px 28px rgba(16,185,129,0.12); }
+
+  /* top area */
+  .asc-top { display:flex; gap:12px; align-items:center; }
+  .asc-icon { width:44px; height:44px; border-radius:10px; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#ecfdf5,#bbf7d0); font-size:1.3rem; }
+  .asc-title { display:flex; flex-direction:column; }
+  .active-sprint-card__name { font-weight: 700; color: #065f46; font-size: 1rem; }
+  .active-sprint-card__meta { font-size: 0.85rem; color: #4b5563; margin-top:2px; }
+
+  /* bottom area */
+  .asc-bottom { display:flex; justify-content:space-between; align-items:center; }
+  .asc-hus { display:flex; align-items:center; gap:8px; }
+  .asc-badge { background: #10b981; color:#fff; padding:6px 10px; border-radius:999px; font-weight:700; font-size:0.9rem; box-shadow: 0 4px 10px rgba(16,185,129,0.12); }
+  .asc-hus-label { color:#065f46; font-weight:600; font-size:0.9rem; }
+  .asc-cta { color:#065f46; font-weight:600; font-size:0.9rem; opacity:0.95; }
 }
 
-.active-sprint-card__name { font-weight: 600; color: #166534; margin-bottom: 6px; }
 .active-sprint-card__info { font-size: 0.8rem; color: #4b5563; display: flex; gap: 12px; }
+
+@media (max-width: 720px) {
+  .active-sprints-grid { gap: 12px; }
+  .active-sprint-card { width: 100%; min-width: auto; }
+}
 
 .quick-actions {
   h3 { font-size: 1.1rem; color: #1a1a2e; margin: 0 0 16px; }

@@ -1,0 +1,32 @@
+[
+  {
+    "id": "sprint-1779672355745",
+    "nombre": "Sprint 19",
+    "fechaInicio": "2026-05-25",
+    "fechaFin": "2026-06-02",
+    "estado": "activo",
+    "hus": [
+      "HU1",
+      "EN2"
+    ],
+    "husInfo": {
+      "HU1": {
+        "descripcion": "DESCRIOCION A MOSTRAR",
+        "criterios": "MOSTRAR CIRTERIOS"
+      },
+      "EN2": {
+        "habilitador": "",
+        "descripcion": "321",
+        "criterios": "654"
+      }
+    }
+  },
+  {
+    "id": "sprint-1779673956114",
+    "nombre": "asdas",
+    "fechaInicio": "2026-05-25",
+    "fechaFin": "",
+    "estado": "cerrado",
+    "hus": []
+  }
+]

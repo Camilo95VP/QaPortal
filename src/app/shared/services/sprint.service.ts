@@ -33,7 +33,7 @@ export class SprintService {
     return this.updateSprint(id, { estado: 'cerrado' });
   }
 
-  addHuToSprint(sprintId: string, huName: string, metadata?: { habilitador?: string; descripcion?: string; criterios?: string }): Observable<any> {
+  addHuToSprint(sprintId: string, huName: string, metadata?: { descripcion?: string; criterios?: string }): Observable<any> {
     return this.http.post(`/api/sprints/${sprintId}/hus`, { huName, ...metadata }).pipe(
       tap(() => this.getSprints().subscribe())
     );

@@ -1,0 +1,10 @@
+.confirm-overlay {
+  position: fixed; inset: 0; display:flex; align-items:center; justify-content:center; z-index:10000; background: rgba(6,10,14,0.45);
+}
+.confirm-box { width: 420px; padding:18px; border-radius:10px; box-shadow: 0 12px 40px rgba(2,6,23,0.4); background: #0f1720; color: #e6f2ff }
+.confirm-header { font-size:16px; font-weight:700; margin-bottom:8px }
+.confirm-body { margin-bottom:14px; color:#cfe8ff }
+.confirm-actions { display:flex; gap:10px; justify-content:flex-end }
+.confirm-actions .btn { padding:8px 12px; border-radius:8px }
+.confirm-actions .btn.primary { background: linear-gradient(180deg,#ffd94d,#ffcc00); color:#072029; font-weight:700 }
+.confirm-actions .btn.outline { background:transparent; border:1px solid rgba(255,255,255,0.12); color:#cfe8ff }

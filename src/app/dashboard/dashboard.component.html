@@ -56,37 +56,25 @@
     <div class="active-sprints-section" *ngIf="getActiveSprints().length > 0">
       <h3>Sprints Activos</h3>
       <div class="active-sprints-grid">
-        <div *ngFor="let sprint of getActiveSprints()" class="active-sprint-card" (click)="navigateTo('/sprints')">
-          <div class="active-sprint-card__name">{{ sprint.nombre }}</div>
-          <div class="active-sprint-card__info">
-            <span>{{ sprint.hus.length }} HUs</span>
-            <span *ngIf="sprint.fechaFin">Fin: {{ sprint.fechaFin }}</span>
+        <div *ngFor="let sprint of getActiveSprints()" class="active-sprint-card" (click)="navigateTo('/sprints/' + sprint.id)">
+          <div class="asc-top">
+            <div class="asc-icon" aria-hidden>📅</div>
+            <div class="asc-title">
+              <div class="active-sprint-card__name">{{ sprint.nombre }}</div>
+              <div class="active-sprint-card__meta" *ngIf="sprint.fechaFin">Fin: {{ sprint.fechaFin }}</div>
+            </div>
+          </div>
+          <div class="asc-bottom">
+            <div class="asc-hus">
+              <span class="asc-badge">{{ sprint.hus.length }}</span>
+              <span class="asc-hus-label">HUs</span>
+            </div>
+            <div class="asc-cta">Ver Sprint</div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Quick Actions -->
-    <div class="quick-actions">
-      <h3>Acciones Rápidas</h3>
-      <div class="actions-grid">
-        <button class="action-card" (click)="navigateTo('/test-designer')">
-          <span class="action-icon">⚡</span>
-          <span class="action-label">Nuevo Diseño</span>
-        </button>
-        <button class="action-card" (click)="navigateTo('/bulk-designer')">
-          <span class="action-icon">📦</span>
-          <span class="action-label">Registrar HU/EN</span>
-        </button>
-        <button class="action-card" (click)="navigateTo('/sprints')">
-          <span class="action-icon">🏃</span>
-          <span class="action-label">Gestionar Sprints</span>
-        </button>
-        <button class="action-card" (click)="navigateTo('/repo-files')">
-          <span class="action-icon">📁</span>
-          <span class="action-label">Ver Artefactos</span>
-        </button>
-      </div>
-    </div>
+    <!-- Quick Actions removed per UI update (Gestionar Sprints moved to navbar) -->
   </div>
 </div>

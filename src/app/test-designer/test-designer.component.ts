@@ -4,6 +4,8 @@ import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup, Validators, A
 import { HttpClient, HttpClientModule } from '@angular/common/http';
 import { Sprint, HuTemplate } from '../shared/models/sprint.model';
 import { SprintService } from '../shared/services/sprint.service';
+import { ToastService } from '../shared/services/toast.service';
+import { Router } from '@angular/router';
 import { ActivatedRoute } from '@angular/router';
 
 @Component({
@@ -26,14 +28,13 @@ export class TestDesignerComponent implements OnInit {
   selectedTemplate = '';
   tipoApp = 'Web';
 
-  constructor(private fb: FormBuilder, private http: HttpClient, private sprintService: SprintService, private route: ActivatedRoute) {
+  constructor(private fb: FormBuilder, private http: HttpClient, private sprintService: SprintService, private route: ActivatedRoute, private toast: ToastService, private router: Router) {
     this.form = this.fb.group({
-      habilitador: [''],
-      nombreHU: [''],
+      nombreHU: ['', Validators.required],
       descripcion: ['', Validators.required],
       criterios: ['', Validators.required],
       contexto: ['']
-    }, { validators: this.requireEitherHabilitadorOrNombre });
+    });
   }
 
   ngOnInit(): void {
@@ -67,74 +68,26 @@ export class TestDesignerComponent implements OnInit {
   }
 
   onHuSelect(huName: string): void {
-    if (!huName || !this.selectedSprint) return;
-    const folderPath = `${this.selectedSprint}/${huName}`;
+    if (!huName) {
+      this.form.reset({ nombreHU: '', descripcion: '', criterios: '', contexto: '' });
+      return;
+    }
 
-    // First, try to read metadata.json and use its fields
-    this.http.get(`/api/repo-files/content?folder=${encodeURIComponent(folderPath)}&path=metadata.json`).subscribe({
-      next: (meta: any) => {
-        try {
-          const descripcion = meta.descripcion || '';
-          const criterios = meta.criterios || '';
-          const habilitador = meta.habilitador || meta.habilitadorId || '';
-          this.form.patchValue({ habilitador: habilitador || '', descripcion, criterios, nombreHU: huName });
-        } catch (e) {
-          // ignore parse errors
-          this.form.patchValue({ nombreHU: huName });
-        }
-      },
-      error: () => {
-        // Fallback: try cargar casos_automatizables.md para extraer contenido
-        this.http.get(`/api/repo-files/content?folder=${encodeURIComponent(folderPath)}&path=casos_automatizables.md`, { responseType: 'text' }).subscribe(
-          (txt: any) => {
-            const raw = String(txt || '');
-            // Extract first non-empty paragraph as description
-            const paragraphs = raw.split(/\n\s*\n/).map(p => p.trim()).filter(p => p);
-            const descripcion = paragraphs.length > 0 ? paragraphs[0].replace(/^#.+/,'').trim() : '';
+    // Use data already loaded from husInfo (sprints.json) — no HTTP calls needed
+    const hu = this.sprintHus.find((h: any) => h.name === huName);
+    if (hu) {
+      const descripcion = (hu as any).descripcion || '';
+      const criterios   = (hu as any).criterios   || '';
+      this.form.patchValue({
+        nombreHU: huName,
+        descripcion,
+        criterios
+      });
+      return;
+    }
 
-            // Try to find criteria lines starting with CA- or lines under a 'Criterios' heading
-            const criteriosLines: string[] = [];
-            const lines = raw.split(/\r?\n/).map(l => l.trim());
-            for (let i = 0; i < lines.length; i++) {
-              const l = lines[i];
-              if (/^CA-\d+/i.test(l)) {
-                criteriosLines.push(l);
-              }
-              // heading 'Criterios' followed by list
-              if (/^criterios?/i.test(l) && i + 1 < lines.length) {
-                // collect following lines that look like CA- or bullet lines
-                for (let j = i + 1; j < Math.min(i + 10, lines.length); j++) {
-                  const nl = lines[j];
-                  if (!nl) break;
-                  if (/^CA-\d+/i.test(nl) || /^[-*•]\s*CA-/i.test(nl) || /^[-*•]\s*/.test(nl)) {
-                    criteriosLines.push(nl.replace(/^[-*•]\s*/,'').trim());
-                  } else {
-                    break;
-                  }
-                }
-              }
-            }
-
-            const criterios = criteriosLines.join('\n');
-
-            // Try to infer habilitador from text (e.g., EN12345) or lines starting with 'Habilitador'
-            let habilitador = '';
-            const habMatch = raw.match(/Habilitador[:\s-]*([A-Z]{1,2}\d{2,6})/i);
-            if (habMatch && habMatch[1]) habilitador = habMatch[1].toUpperCase();
-            else {
-              const codeMatch = raw.match(/\b(EN\d{3,6}|HU\d{3,6})\b/i);
-              if (codeMatch && codeMatch[0]) habilitador = codeMatch[0].toUpperCase();
-            }
-
-            this.form.patchValue({ habilitador: habilitador || '', descripcion, criterios: criterios || '', nombreHU: huName });
-          },
-          () => {
-            // no metadata ni md, sólo set nombreHU
-            this.form.patchValue({ nombreHU: huName });
-          }
-        );
-      }
-    });
+    // Fallback: only set the name (HU has no stored metadata yet)
+    this.form.patchValue({ nombreHU: huName, descripcion: '', criterios: '' });
   }
 
   applyTemplate(templateId: string): void {
@@ -147,12 +100,7 @@ export class TestDesignerComponent implements OnInit {
     });
   }
 
-  requireEitherHabilitadorOrNombre(control: AbstractControl): ValidationErrors | null {
-    const h = control.get('habilitador')?.value;
-    const n = control.get('nombreHU')?.value;
-    const has = (h && String(h).trim().length > 0) || (n && String(n).trim().length > 0);
-    return has ? null : { requireOne: true };
-  }
+  // removed: requireEitherHabilitadorOrNombre - nombreHU is now required
 
   generatePrompt(): void {
     if (this.form.invalid) {
@@ -160,11 +108,8 @@ export class TestDesignerComponent implements OnInit {
       return;
     }
 
-    const { habilitador, nombreHU, descripcion, criterios, contexto } = this.form.value;
-
-    const idLine = [habilitador?.trim() ? `* Habilitador: ${habilitador.trim()}` : '',
-                    nombreHU?.trim()   ? `* Nombre HU: ${nombreHU.trim()}`   : '']
-                  .filter(Boolean).join('\n');
+    const { nombreHU, descripcion, criterios, contexto } = this.form.value;
+    const idLine = nombreHU?.trim() ? `* Nombre HU: ${nombreHU.trim()}` : '';
 
     const tipoLine = `* Tipo de aplicación: ${this.tipoApp}`;
 
@@ -172,7 +117,7 @@ export class TestDesignerComponent implements OnInit {
       ? `\n## ⚠️ CONSIDERACIONES CLAVE\n${contexto.trim().split('\n').map((l: string) => `* ${l.trim()}`).join('\n')}\n`
       : '';
 
-    const huName = (nombreHU?.trim() || habilitador?.trim() || 'HU_sin_identificar');
+    const huName = (nombreHU?.trim() || 'HU_sin_identificar');
     const outputPath = this.selectedSprint
       ? `qa-portal/src/assets/repo-files/${this.selectedSprint}/${huName}/`
       : `qa-portal/src/assets/repo-files/${huName}/`;
@@ -205,12 +150,34 @@ Genera los artefactos con los permisos del usuario y crea:
 
     // If sprint selected, register HU in sprint
     if (this.selectedSprint && huName !== 'HU_sin_identificar') {
-      this.sprintService.addHuToSprint(this.selectedSprint, huName).subscribe();
+      const payload: any = { descripcion: (descripcion || '').trim(), criterios: (criterios || '').trim() };
+      this.sprintService.addHuToSprint(this.selectedSprint, huName, payload).subscribe();
     }
 
     setTimeout(() => {
       this.promptOutput?.nativeElement?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 50);
+  }
+
+  saveMetadata(): void {
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }
+    if (!this.selectedSprint) {
+      this.toast.show('warning', 'Selecciona un sprint para guardar la HU');
+      return;
+    }
+    const { nombreHU, descripcion, criterios } = this.form.value;
+    this.sprintService.addHuToSprint(this.selectedSprint, nombreHU, { descripcion: (descripcion || '').trim(), criterios: (criterios || '').trim() })
+      .subscribe({
+        next: () => {
+          this.toast.show('success', `HU ${nombreHU} guardada en sprint`);
+          // navigate back to sprint detail for quick feedback
+          this.router.navigate(['/sprints', this.selectedSprint]);
+        },
+        error: () => this.toast.show('error', 'Error guardando la HU')
+      });
   }
 
   async copyToClipboard(): Promise<void> {
@@ -235,11 +202,5 @@ Genera los artefactos con los permisos del usuario y crea:
   isInvalid(field: string): boolean {
     const ctrl = this.form.get(field);
     return !!(ctrl && ctrl.invalid && ctrl.touched);
-  }
-
-  isEitherInvalid(): boolean {
-    return !!(this.form.hasError('requireOne') && (
-      this.form.get('habilitador')?.touched || this.form.get('nombreHU')?.touched
-    ));
   }
 }

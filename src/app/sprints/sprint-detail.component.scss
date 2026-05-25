@@ -24,6 +24,20 @@
 .btn { border: none; padding:8px 12px; border-radius:6px; cursor:pointer; font-weight:600 }
 .btn.primary { background:#0b67b2; color:white }
 .btn.outline { background:transparent; border:1px solid #d0dbe6; color:#0b3b66 }
+.btn.rocket {
+	background: linear-gradient(180deg, #ffd94d, #ffcc00);
+	color: #142028;
+	border: 1px solid rgba(0,0,0,0.06);
+	box-shadow: 0 6px 18px rgba(255,204,0,0.18);
+	transform: translateY(0);
+	transition: transform 160ms ease, box-shadow 160ms ease;
+	display:inline-flex; align-items:center; gap:8px;
+	font-weight:700;
+}
+.btn.rocket:hover { transform: translateY(-3px); box-shadow: 0 10px 24px rgba(255,204,0,0.22); }
+
+@keyframes rocket-pulse { 0% { transform: scale(1) } 50% { transform: scale(1.02) } 100% { transform: scale(1) } }
+.btn.rocket { animation: rocket-pulse 2.2s ease-in-out infinite; }
 .btn.sm { padding:6px 8px; font-size:13px }
 .btn.s m {}
 
@@ -45,7 +59,7 @@
 .hus-table thead th { text-align:left; color:#456; font-size:13px; padding:8px 6px; border-bottom:1px solid #eef4fb }
 .hus-table tbody td { padding:10px 6px; border-bottom:1px dashed #f0f5f9 }
 .hu-name { font-weight:600; color:#0b3b66 }
-.actions-col { width:220px }
+/* actions column removed */
 
 .hus-table tbody tr { cursor: pointer }
 .hus-table tbody tr.selected { background: linear-gradient(90deg, #f6fbff, #ffffff); }
@@ -59,7 +73,10 @@
 @media (max-width: 800px) {
 	.sd-body { flex-direction:column }
 	.sd-left { width:100% }
-	.actions-col { width:auto }
+	/* actions column removed */
 	.hide-sm { display:none }
 }
+
+.btn.danger { background: linear-gradient(180deg,#ffc6b3,#ff8a7a); color:#081617; border:1px solid rgba(0,0,0,0.04); font-weight:700 }
+.btn.danger:hover { transform: translateY(-2px); box-shadow: 0 8px 18px rgba(255,138,122,0.14) }
 

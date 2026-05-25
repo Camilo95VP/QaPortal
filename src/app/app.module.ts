@@ -8,6 +8,8 @@ import { TestDesignerComponent } from './test-designer/test-designer.component';
 import { SprintsComponent } from './sprints/sprints.component';
 import { DashboardComponent } from './dashboard/dashboard.component';
 import { BulkDesignerComponent } from './bulk-designer/bulk-designer.component';
+import { ToastComponent } from './shared/components/toast/toast.component';
+import { ConfirmComponent } from './shared/components/confirm/confirm.component';
 
 @NgModule({
   declarations: [
@@ -21,6 +23,8 @@ import { BulkDesignerComponent } from './bulk-designer/bulk-designer.component';
     SprintsComponent,
     DashboardComponent,
     BulkDesignerComponent
+    ,ToastComponent
+    ,ConfirmComponent
   ],
   providers: [],
   bootstrap: [AppComponent]

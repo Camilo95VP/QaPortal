@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { HttpClientModule } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { SprintService } from '../shared/services/sprint.service';
+import { ConfirmService } from '../shared/services/confirm.service';
 import { Sprint } from '../shared/models/sprint.model';
 
 @Component({
@@ -19,7 +20,7 @@ export class SprintsComponent implements OnInit {
   newSprint = { nombre: '', fechaInicio: '', fechaFin: '' };
   loading = false;
 
-  constructor(private sprintService: SprintService, private router: Router) {}
+  constructor(private sprintService: SprintService, private router: Router, private confirmService: ConfirmService) {}
 
   ngOnInit(): void {
     // Subscribe to the shared sprints stream so UI updates when sprints change elsewhere
@@ -59,8 +60,9 @@ export class SprintsComponent implements OnInit {
     });
   }
 
-  closeSprint(sprint: Sprint): void {
-    if (!confirm(`¿Cerrar "${sprint.nombre}"?`)) return;
+  async closeSprint(sprint: Sprint): Promise<void> {
+    const ok = await this.confirmService.confirm(`¿Cerrar "${sprint.nombre}"?`);
+    if (!ok) return;
     this.sprintService.closeSprint(sprint.id).subscribe(() => this.loadSprints());
   }
 
