@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpClientModule } from '@angular/common/http';
 import { ActivatedRoute } from '@angular/router';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { marked } from 'marked';
 import { generarPlantillaWord } from './plantilla-word.service';
 import { TrazabilidadService } from '../shared/services/trazabilidad.service';
 import { ValidadorService } from '../shared/services/validador.service';
@@ -72,8 +74,19 @@ export class RepoFilesComponent implements OnInit {
     private trazabilidadService: TrazabilidadService,
     private validadorService: ValidadorService,
     private sprintService: SprintService,
-    public estimacionService: EstimacionService
+    public estimacionService: EstimacionService,
+    private sanitizer: DomSanitizer
   ) {}
+
+  get isMarkdownFile(): boolean {
+    return this.selectedFile?.endsWith('.md') ?? false;
+  }
+
+  get renderedHtml(): SafeHtml {
+    if (!this.selectedContent) return '';
+    const html = marked(this.selectedContent) as string;
+    return this.sanitizer.bypassSecurityTrustHtml(html);
+  }
 
   ngOnInit(): void {
     this.route.queryParams.subscribe(params => {

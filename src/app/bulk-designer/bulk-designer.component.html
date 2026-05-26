@@ -22,12 +22,6 @@
       </select>
     </div>
     <div class="config-field">
-      <label>Enfoque de diseño</label>
-      <select [(ngModel)]="enfoqueDiseno">
-        <option value="ambos">Ambos (prioriza automatizados)</option>
-        <option value="automatizados">Solo automatizados</option>
-        <option value="manuales">Solo manuales</option>
-      </select>
     </div>
   </div>
 
@@ -80,9 +74,6 @@
 
   <div class="bulk-actions">
     <button class="btn btn--outline" (click)="addItem()">+ Agregar HU</button>
-    <button class="btn btn--primary" (click)="generateAll()" [disabled]="items.length === 0">
-      ⚡ Generar Todos los Prompts ({{ items.length }})
-    </button>
   </div>
 
   <!-- Results -->
