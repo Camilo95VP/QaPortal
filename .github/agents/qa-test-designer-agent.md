@@ -89,7 +89,6 @@ Ejecuta *directamente y sin pedir confirmación* los comandos de shell para crea
 2. *casos_automatizables.md* — Casos funcionales de alto valor (prioridad)
 3. *casos_manuales.md* — Solo casos que NO pueden automatizarse
 4. *automation_v1.spec.ts* — Script Playwright con los casos automatizables
-5. *metadata.json* — Metadatos del diseño (ver formato abajo)
 
 ---
 
@@ -106,23 +105,6 @@ const testData = {
 
 
 Adapta los campos según el tipo de aplicación indicado en el prompt (Web, API REST, Móvil, Hybrid).
-
----
-
-## METADATA.JSON
-
-Crea un archivo metadata.json en la carpeta de la HU con este formato:
-
-json
-{
-  "version": 1,
-  "fecha": "YYYY-MM-DD",
-  "nombreHU": "nombre_de_la_hu",
-  "tipoApp": "Web|API REST|Móvil|Hybrid",
-  "totalCPsAuto": 0,
-  "totalCPsManual": 0
-}
-
 
 ---
 

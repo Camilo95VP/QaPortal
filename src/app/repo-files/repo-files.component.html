@@ -4,7 +4,6 @@
     <h2 class="list-title">Diseños de prueba</h2>
     <div class="actions">
       <button class="btn-refresh" (click)="validateIndex()">Actualizar</button>
-      <button class="btn-export-all" *ngIf="folders.length > 0" (click)="exportarTodoWord()">📦 Export Masivo</button>
       <span class="status-msg" *ngIf="statusMessage">{{ statusMessage }}</span>
     </div>
     <ng-container *ngIf="folders.length > 0; else noFiles">
@@ -43,7 +42,6 @@
         <button type="button" *ngIf="selectedFile && !editing" class="btn-edit" (click)="startEdit()">&#9998; Editar</button>
         <button type="button" *ngIf="selectedFile && !editing" class="btn-word" (click)="generateWord(selectedFolder, selectedFile)">Exportar Word</button>
         <button type="button" *ngIf="selectedFile && !editing && selectedFile === 'casos_manuales.md'" class="btn-template" (click)="showPlantillaModal = true">📋 Generar plantilla</button>
-        <button type="button" *ngIf="selectedFolder && !editing" class="btn-traza" (click)="verTrazabilidad()">📊 Trazabilidad</button>
         <button type="button" *ngIf="selectedFolder && !editing" class="btn-validar" (click)="ejecutarValidacion()">✅ Validar</button>
         <!-- Historial feature removed -->
         <button type="button" *ngIf="editing" class="btn-save" (click)="$event.preventDefault(); saveFile()">&#10003; Guardar</button>
@@ -111,43 +109,6 @@
     <div class="modal-actions">
       <button class="btn-discard" (click)="proceedDelete()">Eliminar</button>
       <button class="btn-cancel" (click)="cancelDelete()">Cancelar</button>
-    </div>
-  </div>
-</div>
-
-<!-- Trazabilidad Panel -->
-<div *ngIf="showTrazabilidad" class="modal-overlay" (click)="cerrarTrazabilidad()">
-  <div class="modal-box modal-box--wide" (click)="$event.stopPropagation()">
-    <div class="modal-header-row">
-      <h3>📊 Matriz de Trazabilidad</h3>
-      <span class="cobertura-badge" [class.cobertura--ok]="coberturaPercent >= 80" [class.cobertura--warn]="coberturaPercent < 80">
-        {{ coberturaPercent }}% cobertura
-      </span>
-    </div>
-    <table class="traza-table" *ngIf="trazabilidadRows.length > 0">
-      <thead>
-        <tr>
-          <th>Criterio</th>
-          <th>CPs Automatizables</th>
-          <th>CPs Manuales</th>
-          <th>Estado</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let row of trazabilidadRows" [class.traza-row--gap]="!row.cubierto">
-          <td><strong>{{ row.ca }}</strong></td>
-          <td>{{ row.cpsAuto.join(', ') || '—' }}</td>
-          <td>{{ row.cpsManual.join(', ') || '—' }}</td>
-          <td>
-            <span *ngIf="row.cubierto" class="traza-ok">✅ Cubierto</span>
-            <span *ngIf="!row.cubierto" class="traza-gap">❌ Sin cobertura</span>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-    <p *ngIf="trazabilidadRows.length === 0" class="traza-empty">No se encontró información de trazabilidad. Asegúrate de que los archivos incluyan el comentario &lt;!-- TRAZA: ... --&gt;</p>
-    <div class="modal-actions">
-      <button class="btn-cancel" (click)="cerrarTrazabilidad()">Cerrar</button>
     </div>
   </div>
 </div>
