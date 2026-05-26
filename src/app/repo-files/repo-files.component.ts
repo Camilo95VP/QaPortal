@@ -8,6 +8,8 @@ import { TrazabilidadService } from '../shared/services/trazabilidad.service';
 import { ValidadorService } from '../shared/services/validador.service';
 import { TrazabilidadRow, ValidationResult } from '../shared/models/sprint.model';
 import { SprintService } from '../shared/services/sprint.service';
+import { EstimacionService } from '../shared/services/estimacion.service';
+import { ArtefactoEstimacion } from '../shared/models/sprint.model';
 import { Document as DocxDocument, Packer as DocxPacker, Paragraph as DocxParagraph, TextRun as DocxTextRun, Table as DocxTable, TableRow as DocxTableRow, TableCell as DocxTableCell, HeadingLevel as DocxHeadingLevel, ImageRun as DocxImageRun, AlignmentType as DocxAlignmentType, ShadingType as DocxShadingType } from 'docx';
 
 interface HuFolder {
@@ -49,6 +51,9 @@ export class RepoFilesComponent implements OnInit {
   // Sprint filter
   currentSprintFilter = '';
 
+  // Estimación del artefacto abierto
+  artefactoEstimacion: ArtefactoEstimacion | null = null;
+
   // Trazabilidad
   showTrazabilidad = false;
   trazabilidadRows: TrazabilidadRow[] = [];
@@ -66,7 +71,8 @@ export class RepoFilesComponent implements OnInit {
     private route: ActivatedRoute,
     private trazabilidadService: TrazabilidadService,
     private validadorService: ValidadorService,
-    private sprintService: SprintService
+    private sprintService: SprintService,
+    public estimacionService: EstimacionService
   ) {}
 
   ngOnInit(): void {
@@ -161,11 +167,13 @@ export class RepoFilesComponent implements OnInit {
     this.selectedFile = filename;
     this.loading = true;
     this.selectedContent = '';
+    this.artefactoEstimacion = null;
     const folderPath = this.folderApiPath(folder);
     const assetPath = `/assets/repo-files/${folderPath.split('/').map(encodeURIComponent).join('/')}/${encodeURIComponent(filename)}`;
     this.http.get(assetPath, { responseType: 'text' }).subscribe({
       next: (txt) => {
         this.selectedContent = txt;
+        this.calcularEstimacionArtefacto(filename, txt);
         this.loading = false;
       },
       error: () => {
@@ -173,6 +181,7 @@ export class RepoFilesComponent implements OnInit {
         this.http.get(apiPath, { responseType: 'text' }).subscribe({
           next: (txt) => {
             this.selectedContent = txt;
+            this.calcularEstimacionArtefacto(filename, txt);
             this.loading = false;
           },
           error: () => {
@@ -182,6 +191,21 @@ export class RepoFilesComponent implements OnInit {
         });
       }
     });
+  }
+
+  /** Calcula estimación si el archivo es un .md de casos */
+  private calcularEstimacionArtefacto(filename: string, contenido: string): void {
+    if (filename === 'casos_automatizables.md') {
+      const count = this.estimacionService.contarCasos(contenido, 'automatizado');
+      if (count > 0) {
+        this.artefactoEstimacion = this.estimacionService.calcularArtefacto(count, 'automatizado');
+      }
+    } else if (filename === 'casos_manuales.md') {
+      const count = this.estimacionService.contarCasos(contenido, 'manual');
+      if (count > 0) {
+        this.artefactoEstimacion = this.estimacionService.calcularArtefacto(count, 'manual');
+      }
+    }
   }
 
   // Toggle visibility of a folder in the sidebar

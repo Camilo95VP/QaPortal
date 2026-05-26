@@ -40,7 +40,8 @@ export class SprintService {
   }
 
   removeHuFromSprint(sprintId: string, huName: string): Observable<any> {
-    return this.http.delete(`/api/sprints/${sprintId}/hus/${huName}`).pipe(
+    const encoded = encodeURIComponent(huName);
+    return this.http.delete(`/api/sprints/${sprintId}/hus/${encoded}`).pipe(
       tap(() => this.getSprints().subscribe())
     );
   }

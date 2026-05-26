@@ -280,6 +280,41 @@ textarea.editor {
   overflow: auto;
 }
 
+/* ─── Estimación banner ─── */
+.estimacion-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  background: linear-gradient(90deg, #f6fbff, #eef6ff);
+  border-bottom: 1px solid #e3e9f0;
+  font-size: 13px;
+}
+.est-badge {
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.est-auto { background: #e3f2fd; color: #0d47a1 }
+.est-manual { background: #fff3e0; color: #e65100 }
+.est-stats {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.est-item { color: #34485b }
+.est-total { color: #0b67b2; font-weight: 600 }
+.est-buffer {
+  font-size: 11px;
+  color: #856404;
+  background: #fff3cd;
+  padding: 1px 7px;
+  border-radius: 8px;
+}
+
 /* Modal styles for unsaved changes */
 .modal-overlay{
   position:fixed;

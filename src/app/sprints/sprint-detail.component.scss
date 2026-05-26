@@ -80,3 +80,65 @@
 .btn.danger { background: linear-gradient(180deg,#ffc6b3,#ff8a7a); color:#081617; border:1px solid rgba(0,0,0,0.04); font-weight:700 }
 .btn.danger:hover { transform: translateY(-2px); box-shadow: 0 8px 18px rgba(255,138,122,0.14) }
 
+// ─── Estimaciones ──────────────────────────────────────────────────────────
+.metric-sub { font-size:11px; color:#607488; margin-top:2px }
+
+.estimacion-section { margin-top:14px; border-top:1px solid #eef4fb; padding-top:10px }
+
+.btn-toggle {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+  color: #0b67b2;
+  padding: 4px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.badge-info {
+  background: #fff3cd;
+  color: #856404;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.estimacion-detail { margin-top:10px }
+
+.est-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.est-table th {
+  text-align: left;
+  color: #456;
+  font-size: 12px;
+  padding: 6px 8px;
+  border-bottom: 1px solid #eef4fb;
+  background: #f8fbff;
+}
+.est-table td {
+  padding: 8px;
+  border-bottom: 1px dashed #f0f5f9;
+}
+.est-hu-name { font-weight:600; color:#0b3b66; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
+.est-total { font-weight:700; color:#0b67b2 }
+.est-table tfoot td { border-top:2px solid #0b67b2; background:#f6fbff }
+
+.est-legend {
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: #f8fbff;
+  border-radius: 8px;
+  border: 1px solid #e9f0f7;
+  font-size: 12px;
+  color: #34485b;
+}
+.est-legend p { margin:0 0 6px 0 }
+.est-legend ul { margin:0; padding-left:18px }
+.est-legend li { margin-bottom:3px }
+

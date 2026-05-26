@@ -50,6 +50,21 @@
         <button type="button" *ngIf="editing" class="btn-cancel" (click)="$event.preventDefault(); cancelEdit()">&#x2715; Cancelar</button>
       </div>
     </div>
+    <!-- Estimación del artefacto actual -->
+    <div *ngIf="artefactoEstimacion && !editing" class="estimacion-banner">
+      <div class="est-badge" [class.est-auto]="artefactoEstimacion.tipo === 'automatizado'" [class.est-manual]="artefactoEstimacion.tipo === 'manual'">
+        {{ artefactoEstimacion.tipo === 'automatizado' ? '🤖' : '📝' }}
+        {{ artefactoEstimacion.tipo | titlecase }}
+      </div>
+      <div class="est-stats">
+        <span class="est-item"><strong>{{ artefactoEstimacion.totalCPs }}</strong> CPs</span>
+        <span class="est-item" *ngIf="artefactoEstimacion.tiempoProgramacion > 0">⌨️ Prog: {{ estimacionService.formatearTiempo(artefactoEstimacion.tiempoProgramacion) }}</span>
+        <span class="est-item">▶️ Ejecución: {{ estimacionService.formatearTiempo(artefactoEstimacion.tiempoEjecucion) }}</span>
+        <span class="est-item">🔄 Retest: {{ estimacionService.formatearTiempo(artefactoEstimacion.tiempoRetest) }}</span>
+        <span class="est-item est-total">⏱️ Total: <strong>{{ estimacionService.formatearTiempo(artefactoEstimacion.totalConBuffer) }}</strong></span>
+        <span class="est-buffer">+15% buffer</span>
+      </div>
+    </div>
     <div *ngIf="loading" class="loading">Cargando...</div>
     <textarea *ngIf="!loading && editing" class="editor" [(ngModel)]="editContent" spellcheck="false"></textarea>
     <pre *ngIf="!loading && !editing && selectedContent">{{ selectedContent }}</pre>

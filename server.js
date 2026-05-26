@@ -83,15 +83,16 @@ app.get('/api/sync', async (req, res) => {
             .filter(n => ALLOWED_EXT.includes(path.extname(n).toLowerCase()));
         } catch (e) { files = []; }
         if (files.length === 0) continue;
-        merged.set(entry.name, { name: entry.name, path: entry.name, files });
-        // copiar archivos a assets/repo-files/<HU>/
-        const destDir = path.join(INDEX_DIR, entry.name);
-        if (!fsSync.existsSync(destDir)) fsSync.mkdirSync(destDir, { recursive: true });
-        for (const f of files) {
-          try {
-            fsSync.copyFileSync(path.join(folderPath, f), path.join(destDir, f));
-          } catch (e) { console.warn('copy fail', entry.name, f, e.message); }
-        }
+          const safeName = sanitizeHuName(entry.name);
+          merged.set(safeName, { name: safeName, path: safeName, files });
+          // copiar archivos a assets/repo-files/<HU>/ usando nombre saneado
+          const destDir = path.join(INDEX_DIR, safeName);
+          if (!fsSync.existsSync(destDir)) fsSync.mkdirSync(destDir, { recursive: true });
+          for (const f of files) {
+            try {
+              fsSync.copyFileSync(path.join(folderPath, f), path.join(destDir, f));
+            } catch (e) { console.warn('copy fail', entry.name, f, e.message); }
+          }
       }
     } catch (e) { console.warn('scan repo root failed', e.message); }
 
@@ -101,7 +102,8 @@ app.get('/api/sync', async (req, res) => {
       for (const entry of assetEntries) {
         if (!entry.isDirectory()) continue;
         if (!/^(HU|EN)/i.test(entry.name)) continue;
-        if (merged.has(entry.name)) continue; // ya incluida desde repo root
+        const safeName = sanitizeHuName(entry.name);
+        if (merged.has(safeName)) continue; // ya incluida desde repo root
         const folderPath = path.join(INDEX_DIR, entry.name);
         let files = [];
         try {
@@ -274,6 +276,11 @@ app.delete('/api/repo-files/folder', async (req, res) => {
 
 const SPRINTS_FILE = path.join(__dirname, 'src', 'assets', 'repo-files', 'sprints.json');
 
+function sanitizeHuName(name) {
+  if (!name) return name;
+  return String(name).replace(/[\\/]/g, ' - ').trim();
+}
+
 async function readSprints() {
   try {
     const data = await fs.readFile(SPRINTS_FILE, 'utf8');
@@ -332,6 +339,35 @@ app.put('/api/sprints/:id', async (req, res) => {
     if (idx === -1) return res.status(404).json({ error: 'sprint not found' });
     sprints[idx] = { ...sprints[idx], ...body, id: req.params.id };
     await writeSprints(sprints);
+    // Also attempt to remove any physical folder variants under the sprint directory
+    try {
+      const sprintDir = path.join(__dirname, 'src', 'assets', 'repo-files', req.params.id);
+      // direct folder with sanitized name
+      const direct = path.join(sprintDir, huToRemove);
+      if (fsSync.existsSync(direct)) {
+        await fs.rm(direct, { recursive: true, force: true });
+      }
+      // recursively scan to find nested folders that flatten to the sanitized name
+      async function scanAndRemove(dir) {
+        const entries = await fs.readdir(dir, { withFileTypes: true });
+        for (const e of entries) {
+          if (!e.isDirectory()) continue;
+          const child = path.join(dir, e.name);
+          const rel = path.relative(sprintDir, child);
+          const parts = rel.split(path.sep).filter(p => p && p !== '.');
+          const flat = parts.join(' - ');
+          if (flat === huToRemove) {
+            await fs.rm(child, { recursive: true, force: true });
+          } else {
+            await scanAndRemove(child);
+          }
+        }
+      }
+      if (fsSync.existsSync(sprintDir)) {
+        await scanAndRemove(sprintDir);
+      }
+    } catch (e) { console.warn('cleanup folders after delete failed', e && e.message ? e.message : e); }
+
     res.json(sprints[idx]);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -345,8 +381,9 @@ app.post('/api/sprints/:id/hus', async (req, res) => {
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
     const idx = sprints.findIndex(s => s.id === req.params.id);
     if (idx === -1) return res.status(404).json({ error: 'sprint not found' });
-    const huName = body.huName;
-    if (!huName) return res.status(400).json({ error: 'huName required' });
+    const rawHuName = body.huName;
+    if (!rawHuName) return res.status(400).json({ error: 'huName required' });
+    const huName = sanitizeHuName(rawHuName);
     if (!sprints[idx].hus.includes(huName)) {
       sprints[idx].hus.push(huName);
     }
@@ -357,6 +394,11 @@ app.post('/api/sprints/:id/hus', async (req, res) => {
       descripcion: body.descripcion || '',
       criterios:   body.criterios   || ''
     };
+    // Ensure sprint folder exists and create hu folder safely
+    const sprintDir = path.join(__dirname, 'src', 'assets', 'repo-files', req.params.id);
+    const huDir = path.join(sprintDir, huName);
+    if (!fsSync.existsSync(sprintDir)) fsSync.mkdirSync(sprintDir, { recursive: true });
+    if (!fsSync.existsSync(huDir)) fsSync.mkdirSync(huDir, { recursive: true });
     await writeSprints(sprints);
     res.json(sprints[idx]);
   } catch (err) {
@@ -370,10 +412,19 @@ app.delete('/api/sprints/:id/hus/:huName', async (req, res) => {
     const sprints = await readSprints();
     const idx = sprints.findIndex(s => s.id === req.params.id);
     if (idx === -1) return res.status(404).json({ error: 'sprint not found' });
-    const huToRemove = decodeURIComponent(req.params.huName).trim();
-    sprints[idx].hus = sprints[idx].hus.filter(h => decodeURIComponent(h).trim() !== huToRemove);
-    if (sprints[idx].husInfo && sprints[idx].husInfo[huToRemove]) {
-      delete sprints[idx].husInfo[huToRemove];
+    const rawParam = decodeURIComponent(req.params.huName).trim();
+    const huToRemove = sanitizeHuName(rawParam);
+    // remove any matching entries: exact sanitized name OR raw (legacy with slashes)
+    sprints[idx].hus = sprints[idx].hus.filter(h => {
+      try {
+        const hDecoded = decodeURIComponent(h).trim();
+        return hDecoded !== huToRemove && sanitizeHuName(hDecoded) !== huToRemove;
+      } catch (e) { return sanitizeHuName(h) !== huToRemove; }
+    });
+    if (sprints[idx].husInfo) {
+      if (sprints[idx].husInfo[huToRemove]) delete sprints[idx].husInfo[huToRemove];
+      // also try to delete legacy key
+      if (sprints[idx].husInfo[rawParam]) delete sprints[idx].husInfo[rawParam];
     }
     await writeSprints(sprints);
     res.json(sprints[idx]);
@@ -405,7 +456,8 @@ app.get('/api/sprints/:id/hus', async (req, res) => {
     const seen = new Set();
     const result = [];
 
-    for (const huName of registeredHus) {
+    for (const rawHuName of registeredHus) {
+      const huName = sanitizeHuName(rawHuName);
       const huDir = path.join(sprintDir, huName);
       if (!fsSync.existsSync(huDir)) fsSync.mkdirSync(huDir, { recursive: true });
       let files = [];
@@ -414,7 +466,7 @@ app.get('/api/sprints/:id/hus', async (req, res) => {
         files = sub.filter(s => s.isFile()).map(s => s.name)
           .filter(n => ALLOWED_EXT.includes(path.extname(n).toLowerCase()));
       } catch (e) { files = []; }
-      const info = husInfo[huName] || {};
+      const info = husInfo[rawHuName] || husInfo[huName] || {};
       result.push({
         name: huName, path: huName, files, sprintId: req.params.id,
         habilitador: info.habilitador || '',

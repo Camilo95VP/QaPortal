@@ -4,9 +4,10 @@ import { HttpClient, HttpClientModule } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { SprintService } from '../shared/services/sprint.service';
+import { EstimacionService } from '../shared/services/estimacion.service';
 import { ConfirmService } from '../shared/services/confirm.service';
 import { ToastService } from '../shared/services/toast.service';
-import { Sprint } from '../shared/models/sprint.model';
+import { Sprint, SprintEstimacion, HuEstimacion, ArtefactoEstimacion } from '../shared/models/sprint.model';
 
 @Component({
   selector: 'app-sprint-detail',
@@ -22,12 +23,14 @@ export class SprintDetailComponent implements OnInit {
   hus: Array<{name:string, files:string[]}> = [];
   loading = false;
   metrics = { totalCPsAuto: 0, totalCPsManual: 0 };
+  sprintEstimacion: SprintEstimacion | null = null;
+  showEstimaciones = false;
   selectedHu: any = null;
   editMode = false;
   editDescripcion = '';
   editCriterios = '';
 
-  constructor(private route: ActivatedRoute, private router: Router, private sprintService: SprintService, private http: HttpClient, private confirm: ConfirmService, private toast: ToastService) {}
+  constructor(private route: ActivatedRoute, private router: Router, private sprintService: SprintService, private http: HttpClient, private confirm: ConfirmService, private toast: ToastService, public estimacionService: EstimacionService) {}
 
   ngOnInit(): void {
     this.route.paramMap.subscribe(pm => {
@@ -69,21 +72,36 @@ export class SprintDetailComponent implements OnInit {
   }
 
   computeMetrics(): void {
-    // Count CP-A and CP-M across HUs in this sprint (incrementally)
     this.metrics = { totalCPsAuto: 0, totalCPsManual: 0 };
-    for (const h of this.hus) {
+    if (this.hus.length === 0) {
+      this.sprintEstimacion = this.estimacionService.calcularSprint([]);
+      return;
+    }
+
+    const huPromises = this.hus.map(h => {
       const folder = `${this.sprintId}/${h.name}`;
       const urlAuto = `/api/repo-files/content?folder=${encodeURIComponent(folder)}&path=casos_automatizables.md`;
       const urlMan = `/api/repo-files/content?folder=${encodeURIComponent(folder)}&path=casos_manuales.md`;
 
-      fetch(urlAuto).then(r => r.ok ? r.text() : '').then(txt => {
-        try { const matches = (txt || '').match(/CP-A\d+/g) || []; this.metrics.totalCPsAuto += new Set(matches).size; } catch(e) {}
-      }).catch(() => {});
+      return Promise.all([
+        fetch(urlAuto).then(r => r.ok ? r.text() : '').catch(() => ''),
+        fetch(urlMan).then(r => r.ok ? r.text() : '').catch(() => '')
+      ]).then(([autoTxt, manTxt]) => {
+        const countAuto = this.estimacionService.contarCasos(autoTxt, 'automatizado');
+        const countMan = this.estimacionService.contarCasos(manTxt, 'manual');
+        this.metrics.totalCPsAuto += countAuto;
+        this.metrics.totalCPsManual += countMan;
 
-      fetch(urlMan).then(r => r.ok ? r.text() : '').then(txt => {
-        try { const matches = (txt || '').match(/CP-M\d+/g) || []; this.metrics.totalCPsManual += new Set(matches).size; } catch(e) {}
-      }).catch(() => {});
-    }
+        const artefactos: ArtefactoEstimacion[] = [];
+        if (countAuto > 0) artefactos.push(this.estimacionService.calcularArtefacto(countAuto, 'automatizado'));
+        if (countMan > 0) artefactos.push(this.estimacionService.calcularArtefacto(countMan, 'manual'));
+        return this.estimacionService.calcularHu(h.name, artefactos);
+      });
+    });
+
+    Promise.all(huPromises).then(huEstimaciones => {
+      this.sprintEstimacion = this.estimacionService.calcularSprint(huEstimaciones);
+    });
   }
 
   selectHu(h: any): void {
@@ -150,6 +168,10 @@ export class SprintDetailComponent implements OnInit {
     const params: any = { sprint: this.sprintId };
     if (hu) params.hu = hu;
     this.router.navigate(['/repo-files'], { queryParams: params });
+  }
+
+  hasArtefactoTipo(hu: HuEstimacion, tipo: 'automatizado' | 'manual'): boolean {
+    return hu.artefactos.some(a => a.tipo === tipo);
   }
 
   async removeHu(huName: string): Promise<void> {

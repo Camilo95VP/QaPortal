@@ -25,13 +25,73 @@
           </div>
           <div class="metric-card">
             <div class="metric-icon">🤖</div>
-            <div class="metric-text">CPs Automatizables</div>
+            <div class="metric-text">CPs Auto</div>
             <div class="metric-value">{{ metrics.totalCPsAuto }}</div>
           </div>
           <div class="metric-card">
             <div class="metric-icon">📝</div>
             <div class="metric-text">CPs Manuales</div>
             <div class="metric-value">{{ metrics.totalCPsManual }}</div>
+          </div>
+          <div class="metric-card" *ngIf="sprintEstimacion">
+            <div class="metric-icon">⏱️</div>
+            <div class="metric-text">Estimación total</div>
+            <div class="metric-value">{{ sprintEstimacion.estimacionHoras }}h</div>
+            <div class="metric-sub">~{{ sprintEstimacion.estimacionDias }} días</div>
+          </div>
+        </div>
+
+        <!-- Detalle estimaciones por HU -->
+        <div *ngIf="sprintEstimacion && sprintEstimacion.hus.length > 0" class="estimacion-section">
+          <button class="btn-toggle" (click)="showEstimaciones = !showEstimaciones">
+            {{ showEstimaciones ? '▼' : '▶' }} Detalle estimaciones
+            <span class="badge-info">15% buffer incluido</span>
+          </button>
+          <div *ngIf="showEstimaciones" class="estimacion-detail">
+            <table class="est-table">
+              <thead>
+                <tr>
+                  <th>HU</th>
+                  <th>Auto</th>
+                  <th>Manual</th>
+                  <th>Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let hu of sprintEstimacion.hus">
+                  <td class="est-hu-name" [title]="hu.huName">{{ hu.huName | slice:0:40 }}{{ hu.huName.length > 40 ? '...' : '' }}</td>
+                  <td>
+                    <span *ngFor="let a of hu.artefactos">
+                      <span *ngIf="a.tipo === 'automatizado'">{{ a.totalCPs }} CPs</span>
+                    </span>
+                    <span *ngIf="!hasArtefactoTipo(hu, 'automatizado')">—</span>
+                  </td>
+                  <td>
+                    <span *ngFor="let a of hu.artefactos">
+                      <span *ngIf="a.tipo === 'manual'">{{ a.totalCPs }} CPs</span>
+                    </span>
+                    <span *ngIf="!hasArtefactoTipo(hu, 'manual')">—</span>
+                  </td>
+                  <td class="est-total">{{ estimacionService.formatearTiempo(hu.totalMinutos) }}</td>
+                </tr>
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td><strong>TOTAL SPRINT</strong></td>
+                  <td><strong>{{ sprintEstimacion.totalCPsAuto }} CPs</strong></td>
+                  <td><strong>{{ sprintEstimacion.totalCPsManual }} CPs</strong></td>
+                  <td class="est-total"><strong>{{ sprintEstimacion.estimacionHoras }}h</strong></td>
+                </tr>
+              </tfoot>
+            </table>
+            <div class="est-legend">
+              <p>📐 <strong>Modelo de estimación:</strong></p>
+              <ul>
+                <li>🤖 Auto: diseño 10m + programación 35m + ejecución 3m + retest 2m por CP</li>
+                <li>📝 Manual: diseño 10m + ejecución 18m + retest 12m por CP</li>
+                <li>⚠️ Buffer 15% por bloqueantes/imprevistos incluido</li>
+              </ul>
+            </div>
           </div>
         </div>
       </section>

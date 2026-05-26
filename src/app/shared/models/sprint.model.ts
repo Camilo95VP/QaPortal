@@ -68,3 +68,34 @@ export interface DashboardMetrics {
   ratioAutoManual: number;
   husConGaps: string[];
 }
+
+/** Métricas de estimación de tiempo por artefacto */
+export interface ArtefactoEstimacion {
+  tipo: 'automatizado' | 'manual';
+  totalCPs: number;
+  tiempoDiseno: number;       // minutos
+  tiempoProgramacion: number; // minutos (solo automatizado)
+  tiempoEjecucion: number;    // minutos (primera ejecución)
+  tiempoRetest: number;       // minutos
+  buffer: number;             // minutos (15%)
+  totalSinBuffer: number;     // minutos
+  totalConBuffer: number;     // minutos
+}
+
+/** Métricas agregadas de una HU */
+export interface HuEstimacion {
+  huName: string;
+  artefactos: ArtefactoEstimacion[];
+  totalMinutos: number;
+  totalHoras: number;
+}
+
+/** Métricas agregadas de un sprint */
+export interface SprintEstimacion {
+  totalCPsAuto: number;
+  totalCPsManual: number;
+  totalCPs: number;
+  estimacionHoras: number;
+  estimacionDias: number; // asumiendo jornada 8h
+  hus: HuEstimacion[];
+}
